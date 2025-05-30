@@ -1,0 +1,8 @@
+kafka-python
+flask
+requests
+pyyaml
+slack_sdk
+transformers
+llama-cpp-python
+pytest
