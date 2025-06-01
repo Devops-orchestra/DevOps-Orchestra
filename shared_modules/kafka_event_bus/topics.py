@@ -1,0 +1,7 @@
+CODE_PUSH = "code_push"
+BUILD_READY = "build_ready"
+IAC_READY = "iac_ready"
+TEST_RESULTS = "test_results"
+DEPLOYMENT_TRIGGERED = "deployment_triggered"
+OBSERVABILITY_ALERT = "observability_alert"
+ROLLBACK_EVENT = "rollback_event"
