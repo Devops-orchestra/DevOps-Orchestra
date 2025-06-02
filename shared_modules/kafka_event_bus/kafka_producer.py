@@ -1,5 +1,6 @@
 from kafka import KafkaProducer
 import json
+from shared.utils.logger import logger
 
 producer = KafkaProducer(
     bootstrap_servers='localhost:9092',
@@ -7,6 +8,6 @@ producer = KafkaProducer(
 )
 
 def publish_event(topic, data):
-    print(f"[Kafka] Publishing to {topic}: {data}")
+    logger.info(f"[Kafka Producer] Publishing to topic '{topic}': {data}")
     producer.send(topic, value=data)
     producer.flush()
