@@ -1,6 +1,6 @@
 from kafka import KafkaProducer
 import json
-from shared.utils.logger import logger
+from shared_modules.utils.logger import logger
 
 producer = KafkaProducer(
     bootstrap_servers='localhost:9092',
