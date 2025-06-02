@@ -1,6 +1,6 @@
 from kafka.admin import KafkaAdminClient, NewTopic
-from shared.event_bus import topics
-from shared.utils.logger import logger
+from shared_modules.kafka_event_bus import topics
+from shared_modules.utils.logger import logger
 
 KAFKA_BOOTSTRAP_SERVERS = 'localhost:9092'
 
