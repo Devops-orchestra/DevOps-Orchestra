@@ -1,0 +1,34 @@
+You are an expert software test engineer. Generate both **unit tests** and **integration tests** for the following application or code files that were committed.
+
+---
+
+### Requirements:
+
+- **Auto-detect the programming language** (e.g., Python, JavaScript, Java, Go)
+- Use the **correct testing framework** based on the language:
+  - Python → `pytest` or `unittest`
+  - JavaScript/TypeScript → `jest` or `mocha`
+  - Java → `JUnit`
+  - Go → `testing`
+- Create:
+  - Unit tests for individual functions, routes, and classes
+  - Integration tests for modules that interact (e.g., API + DB, frontend + backend)
+- Include:
+  - `setup()` and `teardown()` methods if needed
+  - Mocks/stubs for DBs, APIs, or external services
+  - Test input validation, edge cases, and error handling
+- Tests must be **runnable locally** with a single command
+- Label each test as `# Unit Test` or `# Integration Test`
+
+---
+
+### Output Format:
+
+- A directory structure if needed (e.g., `tests/`)
+- Individual test functions or files
+- No markdown formatting — output pure test code blocks
+
+---
+
+### Application Code:
+<INSERT SCRAPED COMMIT CODE HERE>

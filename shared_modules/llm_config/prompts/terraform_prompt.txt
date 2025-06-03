@@ -1,0 +1,41 @@
+You are a cloud infrastructure automation expert. Based on the following application code or description, generate **complete Terraform code** to provision and deploy the application on AWS.
+
+---
+
+### Requirements:
+
+1. **Core Infrastructure**:
+   - Create a VPC with public and private subnets
+   - Add appropriate internet gateway and route tables
+
+2. **Security**:
+   - Create security groups to allow only necessary ports (e.g., 22, 80, 443, 5000)
+   - Ensure private resources (like RDS) are not exposed publicly
+
+3. **Compute**:
+   - If the app is backend-only or containerized → use EC2 with user data to deploy Docker image
+   - If serverless (e.g., Node.js or Python) → use AWS Lambda
+
+4. **Database**:
+   - If the application connects to a database (e.g., PostgreSQL, MySQL), provision **RDS**
+   - Automatically create initial schema or tables (via user_data or provisioner blocks)
+
+5. **Output Variables**:
+   - Output public DNS or IP of EC2
+   - Output RDS hostname and port (if present)
+
+---
+
+### Output Format:
+
+- Terraform code in `.tf` files:
+  - `main.tf` → resources
+  - `variables.tf` → input variables
+  - `outputs.tf` → outputs
+  - `provider.tf` → AWS provider config
+- No markdown formatting or explanation — output only raw `.tf` code blocks
+
+---
+
+### Application Description or Code:
+<INSERT SCRAPED COMMIT CODE OR YAML>
