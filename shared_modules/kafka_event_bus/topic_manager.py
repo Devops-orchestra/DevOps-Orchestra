@@ -1,3 +1,11 @@
+"""
+kafka_topic_setup.py
+
+Creates required Kafka topics for the DevOps orchestration pipeline using KafkaAdminClient.
+
+Topics are only created if they do not already exist.
+"""
+
 from kafka.admin import KafkaAdminClient, NewTopic
 from shared_modules.kafka_event_bus import topics
 from shared_modules.utils.logger import logger
@@ -5,6 +13,9 @@ from shared_modules.utils.logger import logger
 KAFKA_BOOTSTRAP_SERVERS = 'localhost:9092'
 
 def create_topics():
+    """
+    Creates required Kafka topics if they do not already exist.
+    """
     admin_client = KafkaAdminClient(
         bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS,
         client_id='devops-orchestra-admin'
@@ -29,10 +40,14 @@ def create_topics():
     try:
         existing = admin_client.list_topics()
         topics_to_create = [t for t in new_topics if t.name not in existing]
+
         if topics_to_create:
             admin_client.create_topics(new_topics=topics_to_create)
-            logger.info(f"Created Kafka topics: {[t.name for t in topics_to_create]}")
+            logger.info(f"[Kafka Admin] Created Kafka topics: {[t.name for t in topics_to_create]}")
         else:
-            logger.info("All Kafka topics already exist.")
+            logger.info("[Kafka Admin] All required Kafka topics already exist.")
+
     except Exception as e:
-        logger.error(f"Error creating Kafka topics: {e}")
+        logger.error(f"[Kafka Admin] Error creating Kafka topics: {e}")
+    finally:
+        admin_client.close()

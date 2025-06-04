@@ -6,3 +6,5 @@ slack_sdk
 transformers
 llama-cpp-python
 pytest
+langgraph
+langchain
