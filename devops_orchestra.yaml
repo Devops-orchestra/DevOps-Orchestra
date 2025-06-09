@@ -1,0 +1,68 @@
+project:
+  name: my-app
+  frontend-language: react
+  backend-language: python
+  repo: https://github.com/user/my-app
+
+build:
+  tool: docker   # options: docker, maven, npm, poetry, custom 
+  context: .
+  dockerfile: Dockerfile
+
+testing:
+  enabled: true
+  framework: pytest
+  command: pytest tests/
+
+deployment:
+  type: cloud
+  provider: aws
+  strategy: blue-green
+  region: us-west-2
+  services:
+    - name: api-server
+      runtime: ec2
+      port: 5000
+      env:
+        - key: ENV
+          value: production
+        - key: DB_URL
+          value: postgres://...
+
+infrastructure:
+  tool: terraform
+  path: infra/
+
+secrets:
+  manager: aws_secrets_manager
+  keys:
+    - DB_PASSWORD
+    - API_KEY
+
+rollback:
+  enabled: true
+  threshold:
+    cpu: 90
+    errors: 5
+    duration: 5m
+
+observability:
+  enabled: true
+  tools:
+    - prometheus
+    - grafana
+    - cloudwatch
+  alerts:
+    - type: latency
+      threshold_ms: 500
+    - type: error_rate
+      threshold: 2%
+
+chatops:
+  enabled: true
+  platform: slack
+  channel: "#devops-orchestra"
+  notify_on:
+    - deployment_success
+    - deployment_failure
+    - rollback_triggered

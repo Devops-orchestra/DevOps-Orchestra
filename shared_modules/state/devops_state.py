@@ -29,6 +29,7 @@ class RepoContext(BaseModel):
     branch: Optional[str] = None
     commit: Optional[str] = None
     config: Optional[dict] = None
+    size_mb: Optional[float] = None
 
 
 class CodeAnalysisResult(BaseModel):
