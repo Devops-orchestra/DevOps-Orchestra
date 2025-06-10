@@ -1,14 +1,13 @@
 # File: main.py
 import shutil
 import threading
-import time
 import os
-import signal
 from flask import Flask, request, jsonify
 from agents.gitops_agent.main import run_gitops_agent
 from shared_modules.state.devops_state import DevOpsAgentState
 from shared_modules.kafka_event_bus.topic_manager import create_topics
 from shared_modules.utils.logger import logger
+from shared_modules.utils.file_utils import handle_remove_readonly
 from pyngrok import ngrok
 
 app = Flask(__name__)
@@ -19,13 +18,13 @@ state = DevOpsAgentState()
 def cleanup_old_repos():
     base_dir = "/tmp/gitops_repos"
     if os.path.exists(base_dir):
-        shutil.rmtree(base_dir, ignore_errors=True)
+        logger.info("Cleaning Old Repository")
+        shutil.rmtree(base_dir, onerror=handle_remove_readonly)
     os.makedirs(base_dir, exist_ok=True)
 
 @app.route("/webhook", methods=["POST"])
 def github_webhook():
-    logger.info(f"Headers: {dict(request.headers)}")
-    logger.info(f"Raw data: {request.data}")
+    logger.info("Github Event triggered")
     event_type = request.headers.get("X-GitHub-Event")
 
     # Try to parse JSON first; fallback to form data
@@ -39,6 +38,7 @@ def github_webhook():
             return jsonify({"error": "Unsupported Media Type"}), 415
 
     if not payload:
+        logger.error("Empty or malformed payload")
         return jsonify({"error": "Empty or malformed payload"}), 400
 
     logger.info(f"Received GitHub event: {event_type}")

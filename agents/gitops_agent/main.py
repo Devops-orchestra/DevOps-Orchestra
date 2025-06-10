@@ -4,11 +4,23 @@ import os
 import platform
 import requests
 import socket
+import psutil
 from agents.gitops_agent.event_handler import handle_github_event
 from shared_modules.state.devops_state import DevOpsAgentState
 from shared_modules.utils.logger import logger
 
 TOOL_SERVER_PORT = 8001
+
+def kill_process_on_port(port: int):
+    for conn in psutil.net_connections(kind='inet'):
+        if conn.laddr.port == port:
+            try:
+                proc = psutil.Process(conn.pid)
+                logger.info(f"Killing process {conn.pid} using port {port}")
+                proc.kill()
+                return
+            except (psutil.NoSuchProcess, psutil.AccessDenied) as e:
+                logger.error(f"Could not kill process {conn.pid}: {e}")
 
 def start_tool_server():
     """
@@ -21,12 +33,11 @@ def start_tool_server():
 
     # Check if already running on the port
     try:
-        sock = socket.create_connection(("localhost", TOOL_SERVER_PORT), timeout=2)
-        logger.info(f"Tool server already running on port {TOOL_SERVER_PORT}")
-        sock.close()
-        return
+        with socket.create_connection(("localhost", TOOL_SERVER_PORT), timeout=2):
+            logger.info(f"Tool server already running on port {TOOL_SERVER_PORT}, restarting it.")
+            kill_process_on_port(TOOL_SERVER_PORT)
     except (ConnectionRefusedError, OSError):
-        pass
+        logger.info("Tool server is not running. Starting it now...")
 
     if platform.system() == "Windows":
         venv_python = os.path.join(os.getcwd(), ".venv", "Scripts", "python.exe")

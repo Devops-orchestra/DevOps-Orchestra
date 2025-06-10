@@ -6,6 +6,7 @@ from handlers.config_validator import run_config_validation
 from handlers.repo_size import run_repo_size
 from fastapi.responses import JSONResponse
 import uvicorn
+import traceback2 as traceback
 
 app = FastAPI(title="DevOps Tool Server", version="1.0")
 
@@ -22,9 +23,13 @@ class ToolInvokeRequest(BaseModel):
     tool_name: str
     input: dict
 
+class ToolInvokeResponse(BaseModel):
+    status: str
+    output: dict
+
 # POST endpoint for tool invocation
-@app.post("/invoke")
-async def invoke_tool(req: ToolInvokeRequest):
+@app.post("/invoke", response_model=ToolInvokeResponse)
+def invoke_tool(req: ToolInvokeRequest):
     if req.tool_name not in TOOL_REGISTRY:
         return {"status": "error", "output": {"message": f"Unknown tool: {req.tool_name}"}}
 
@@ -32,6 +37,8 @@ async def invoke_tool(req: ToolInvokeRequest):
         result = TOOL_REGISTRY[req.tool_name](req.input)
         return {"status": "success", "output": result}
     except Exception as e:
+        tb = traceback.format_exc()
+        print("Exception Traceback:\n", tb)
         return {"status": "error", "output": {"message": str(e)}}
 
 # GET endpoint for health check
