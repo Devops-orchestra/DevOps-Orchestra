@@ -6,6 +6,7 @@ Utility functions for basic file operations such as checking existence, reading,
 
 import os
 from typing import Union
+import stat
 
 def file_exists(path: str) -> bool:
     """
@@ -52,3 +53,10 @@ def write_file(path: str, content: Union[str, bytes]) -> None:
     mode = 'wb' if isinstance(content, bytes) else 'w'
     with open(path, mode) as f:
         f.write(content)
+
+def handle_remove_readonly(func, path, exc_info):
+    """
+    Error handler for shutil.rmtree to handle read-only files.
+    """
+    os.chmod(path, stat.S_IWRITE)
+    func(path)

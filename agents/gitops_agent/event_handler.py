@@ -25,6 +25,7 @@ def call_tool_server(tool_name: str, input_payload: dict) -> dict:
         dict: Standardized response with 'status' and 'output'.
     """
     try:
+        logger.info(f"Sending to tool server: {tool_name} | {input_payload} | type={type(input_payload)}")
         response = httpx.post(
             TOOL_SERVER_URL,
             json={
@@ -34,6 +35,8 @@ def call_tool_server(tool_name: str, input_payload: dict) -> dict:
             timeout=30.0
         )
         response.raise_for_status()
+        logger.info(f"Raw response text: {response.text}")
+        logger.info(f"Raw response type: {type(response.json())}")
         return response.json()
     except Exception as e:
         logger.error(f"Error calling tool server ({tool_name}): {e}")
@@ -103,11 +106,11 @@ def handle_github_event(event_type: str, payload: dict, state: DevOpsAgentState)
     state.repo_context.branch = branch
     state.repo_context.commit = commit
     state.repo_context.config = config
-    state.repo_context.size_mb = size_result['output']['size_mb']
+    state.repo_context.size_mb = size_result['output']['repo_size_mb']
 
     state.status = "success"
     logger.info(f"GitOps Agent successfully completed for repo: {repo_name}")
-
+    
     # Step 8: Emit Kafka event
     publish_event(CODE_PUSH, state.model_dump())
     return state
