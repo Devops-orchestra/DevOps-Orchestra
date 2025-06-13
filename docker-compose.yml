@@ -30,6 +30,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
   app:
     build: .
     ports:
@@ -37,6 +38,9 @@ services:
     depends_on:
       kafka:
         condition: service_healthy
+    volumes:
+      - ./data/gitops_repos:/tmp/gitops_repos
     environment:
       - PYTHONUNBUFFERED=1
-      - NGROK_AUTHTOKEN=2yCSLCoIPgSzIlFSx1xMR961GKp_5ujtUAdtiJsR8NSWrqkLZ
+      - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}  
+

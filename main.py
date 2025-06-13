@@ -20,10 +20,21 @@ state = DevOpsAgentState()
 
 def cleanup_old_repos():
     base_dir = "/tmp/gitops_repos"
+
     if os.path.exists(base_dir):
         logger.info("Cleaning Old Repository")
-        shutil.rmtree(base_dir, onerror=handle_remove_readonly)
-    os.makedirs(base_dir, exist_ok=True)
+        for filename in os.listdir(base_dir):
+            file_path = os.path.join(base_dir, filename)
+            try:
+                if os.path.isfile(file_path) or os.path.islink(file_path):
+                    os.unlink(file_path)
+                elif os.path.isdir(file_path):
+                    shutil.rmtree(file_path, onerror=handle_remove_readonly)
+            except Exception as e:
+                logger.error(f"Failed to delete {file_path}. Reason: {e}")
+    else:
+        os.makedirs(base_dir, exist_ok=True)
+
 
 @app.route("/webhook", methods=["POST"])
 def github_webhook():
@@ -81,7 +92,7 @@ def launch_gitops_agent():
     wait_for_kafka()
     create_topics()
     launch_ngrok()
-    app.run(port=5001)
+    app.run(host='0.0.0.0', port=5001)
 
 if __name__ == "__main__":
     launch_gitops_agent()
