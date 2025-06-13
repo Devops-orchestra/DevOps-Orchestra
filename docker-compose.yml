@@ -19,7 +19,7 @@ services:
       - "9092:9092"
     environment:
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
       KAFKA_BROKER_ID: 1
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
@@ -30,3 +30,14 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+  app:
+    build: .
+    ports:
+      - "5001:5001"
+    depends_on:
+      kafka:
+        condition: service_healthy
+    environment:
+      - PYTHONUNBUFFERED=1
+      - NGROK_AUTHTOKEN=2yFpZ22YsfrhY3fRyqfgEjPOllu_xpQuiNbD3NTmjoj8gWm5
+

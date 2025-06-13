@@ -1,6 +1,7 @@
 import subprocess
 from pydantic import BaseModel
 import os
+import sys
 
 class LicenseAuditInput(BaseModel):
     repo_path: str
@@ -15,9 +16,8 @@ def run_license_audit(data: dict):
 
     if os.path.exists(requirements_path):
         # Python: use piplicenses inside the project's venv
-        venv_python = os.path.join(os.getcwd(), ".venv", "Scripts", "python.exe")
         result = subprocess.run(
-            [venv_python, "-m", "piplicenses", "--format=json"],
+            [sys.executable, "-m", "piplicenses", "--format=json"],
             cwd=repo_path,
             capture_output=True,
             text=True
