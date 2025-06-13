@@ -7,14 +7,25 @@ from kafka import KafkaProducer
 import json
 from shared_modules.utils.logger import logger
 import atexit
+from kafka.errors import NoBrokersAvailable
+import time
 
-# Initialize a Kafka producer with JSON serialization and reliable delivery settings.
-producer = KafkaProducer(
-    bootstrap_servers='localhost:9092',
-    value_serializer=lambda v: json.dumps(v).encode('utf-8'),
-    acks='all',   # Ensure all replicas acknowledge the message
-    retries=3    # Retry up to 3 times on transient failures
-)
+def create_producer():
+    for attempt in range(10):  # Try up to 10 times
+        try:
+            logger.info(f"[Kafka Producer] Attempt {attempt+1} to connect to Kafka...")
+            return KafkaProducer(
+                bootstrap_servers='kafka:9092',
+                value_serializer=lambda v: json.dumps(v).encode('utf-8'),
+                acks='all',
+                retries=3
+            )
+        except NoBrokersAvailable:
+            logger.warning("Kafka not available yet. Retrying in 3 seconds...")
+            time.sleep(3)
+    raise Exception("Kafka not available after multiple retries.")
+
+producer = create_producer()
 
 def publish_event(topic: str, data: dict):
     """
