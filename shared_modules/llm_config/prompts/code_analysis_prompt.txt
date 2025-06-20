@@ -1,16 +1,19 @@
-You are a senior static code analysis and security expert. Analyze the following codebase or changed files from a GitHub commit.
+You are an expert software engineer and code reviewer.
 
-### Goals:
-- Identify any **missing modules**, **import errors**, or **unresolved references**
-- Detect **syntax errors** in Python, JavaScript, Java, Go, or C++
-- Flag **security issues** (e.g., SQL injection, XSS, hardcoded credentials)
-- Detect **bad coding practices** or **anti-patterns**
-- Provide a summary of **warnings** and **errors**, each with a severity tag and line number if possible
+Analyze the following code file named "{{ filename }}".
 
-### Output format:
-- `passed`: true/false
-- `warnings`: list of strings (e.g., "Line 12: unused import", "Line 40: inefficient loop")
-- `errors`: list of strings (e.g., "Line 24: undefined variable `db_conn`")
+Your goal is to:
+1. Summarize what the code does.
+2. Identify potential bugs or security issues.
+3. Suggest improvements for readability or performance.
+4. Evaluate the use of programming best practices.
 
-### Code files (combined or diff from GitHub):
-<INSERT SCRAPED CODE HERE>
+Here is the content of the file:
+
+{{ file_contents }}
+
+Please respond with a structured analysis in markdown format with headers for:
+- Summary
+- Issues Found
+- Suggestions for Improvement
+- Overall Code Quality

@@ -38,6 +38,8 @@ services:
     depends_on:
       kafka:
         condition: service_healthy
+    env_file:
+      - .env
     volumes:
       - ./data/gitops_repos:/tmp/gitops_repos
     environment:
