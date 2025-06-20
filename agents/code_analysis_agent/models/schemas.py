@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 
 class LLMCodeAnalysisInput(BaseModel):
     repo: str
@@ -8,3 +8,8 @@ class LLMCodeAnalysisInput(BaseModel):
     repo_path: str
     file_limit: int = 5
     llm_model: Optional[str] = "llama-3.3-70b-versatile"
+
+class CodeAnalysisResult(BaseModel):
+    passed: bool = False
+    warnings: List[str] = []
+    errors: List[str] = []

@@ -91,7 +91,7 @@ def launch_orchestrator():
     wait_for_kafka()
     create_topics()
     launch_ngrok()
-    start_code_analysis_agent()
+    start_code_analysis_agent(state)
     app.run(host="0.0.0.0", port=5001)
 
 if __name__ == "__main__":
