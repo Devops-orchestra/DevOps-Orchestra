@@ -73,6 +73,7 @@ class CodeAnalysisEvent(BaseModel):
     passed: bool                       # Overall pass/fail status
     warnings: List[str]                # List of warnings
     errors: List[str]                  # List of errors
+    notes: List[str]                   # List of notes
     agent: str = "code_analysis_agent" # Originating agent
 
 

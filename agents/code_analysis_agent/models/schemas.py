@@ -13,3 +13,4 @@ class CodeAnalysisResult(BaseModel):
     passed: bool = False
     warnings: List[str] = []
     errors: List[str] = []
+    notes: List[str] = []
