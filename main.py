@@ -19,6 +19,9 @@ from shared_modules.state.devops_state import DevOpsAgentState
 
 from agents.code_analysis_agent.main import start_code_analysis_agent
 
+from agents.build_agent.main import run_build_agent
+
+from agents.build_agent.main import start_build_agent
 
 # Flask App
 app = Flask(__name__)
@@ -76,13 +79,22 @@ def github_webhook():
     event_type = request.headers.get("X-GitHub-Event")
     payload = request.get_json() or request.form.to_dict()
 
+    state.last_event = {
+        "event_type": event_type,
+        "payload": payload
+    }
+
     if not payload:
         logger.error("Empty or malformed payload")
         return jsonify({"error": "Empty or malformed payload"}), 400
 
-    thread = threading.Thread(target=run_gitops_agent, args=(event_type, payload, state))
+    def handle_agents():
+        run_gitops_agent(event_type, payload, state)
+
+    thread = threading.Thread(target=handle_agents)
     thread.start()
-    return jsonify({"message": "GitOps Agent triggered"}), 200
+
+    return jsonify({"message": "GitOps & Build Agent triggered"}), 200
 
 
 # --- Unified Launch ---
@@ -92,6 +104,7 @@ def launch_orchestrator():
     create_topics()
     launch_ngrok()
     start_code_analysis_agent(state)
+    start_build_agent(state)
     app.run(host="0.0.0.0", port=5001)
 
 if __name__ == "__main__":

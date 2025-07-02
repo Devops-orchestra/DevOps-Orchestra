@@ -87,3 +87,4 @@ class DevOpsAgentState(BaseModel):
     agent_logs: List[str] = []
     current_agent: Optional[str] = None
     status: StatusEnum = StatusEnum.NOT_STARTED
+    last_event: Optional[Dict] = None
