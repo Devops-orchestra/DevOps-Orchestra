@@ -8,7 +8,7 @@ MAX_RETRIES = 3
 
 def should_build(inputs: dict) -> str:
     state: DevOpsAgentState = inputs["state"]
-    return "build_image" if state.code_analysis.passed else "build_image"
+    return "build_image" if state.code_analysis.passed else "notify_code_analysis_failure"
 
 def check_build_status(inputs: dict) -> str:
     state: DevOpsAgentState = inputs["state"]
