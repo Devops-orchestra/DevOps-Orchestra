@@ -6,7 +6,7 @@ WORKDIR /app
 
 # Install Git and system dependencies
 RUN apt-get update && \
-    apt-get install -y git && \
+    apt-get install -y git docker.io && \
     apt-get clean
 
 # Copy project files into the container

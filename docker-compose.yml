@@ -42,6 +42,8 @@ services:
       - .env
     volumes:
       - ./data/gitops_repos:/tmp/gitops_repos
+      - /var/run/docker.sock:/var/run/docker.sock
+    privileged: true
     environment:
       - PYTHONUNBUFFERED=1
       - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}  

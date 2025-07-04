@@ -1,18 +1,25 @@
+# File: agents/code_analysis_agent/tools/llm_code_analyzer.py
+
 import os
 import glob
 from jinja2 import Template
 from agents.code_analysis_agent.models.schemas import LLMCodeAnalysisInput
 from shared_modules.llm_config.model_wrapper import run_prompt
 from shared_modules.utils.logger import logger
+from shared_modules.state.devops_state import DevOpsAgentState
 
 SUPPORTED_EXTENSIONS = ["*.py", "*.js", "*.java", "*.cpp", "*.c", "*.html", "*.css", "*.ts"]
 
 def read_prompt_template():
-    path = os.path.join(os.path.dirname(__file__), "..", "..", "..", "shared_modules", "llm_config", "prompts", "code_analysis_prompt.txt")
+    path = os.path.join(
+        os.path.dirname(__file__),
+        "..", "..", "..",
+        "shared_modules", "llm_config", "prompts", "code_analysis_prompt.txt"
+    )
     with open(path, "r", encoding="utf-8") as f:
         return Template(f.read())
 
-def analyze_code_with_llm(input_data: LLMCodeAnalysisInput):
+def analyze_code_with_llm(input_data: LLMCodeAnalysisInput, state: DevOpsAgentState = None):
     logger.info(f"Starting LLM code analysis for repo: {input_data.repo_path}")
     prompt_template = read_prompt_template()
 
@@ -22,6 +29,8 @@ def analyze_code_with_llm(input_data: LLMCodeAnalysisInput):
     files = files[:input_data.file_limit]
 
     results = []
+    combined_context = ""
+
     for file_path in files:
         try:
             with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
@@ -50,5 +59,13 @@ def analyze_code_with_llm(input_data: LLMCodeAnalysisInput):
             "file": file_path,
             "analysis": llm_response
         })
+
+        # Add to context memory
+        combined_context += f"\n# File: {os.path.relpath(file_path, input_data.repo_path)}\n{code[:3000]}\n"
+
+    # If state is passed, update it
+    if state is not None:
+        state.llm_context_memory = combined_context
+
     logger.info(f"LLM Results: {results}")
     return {"files_analyzed": len(results), "results": results}

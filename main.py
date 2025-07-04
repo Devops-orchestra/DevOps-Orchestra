@@ -1,10 +1,7 @@
-# File: unified_orchestrator.py
-
 import os
 import shutil
 import threading
 import time
-import json
 from flask import Flask, request, jsonify
 from kafka.admin import KafkaAdminClient
 from kafka.errors import KafkaError
@@ -16,9 +13,7 @@ from shared_modules.kafka_event_bus.topic_manager import create_topics
 
 from agents.gitops_agent.main import run_gitops_agent
 from shared_modules.state.devops_state import DevOpsAgentState
-
-from agents.code_analysis_agent.main import start_code_analysis_agent
-
+from agents.langgraph_combined.main import start_combined_agent
 
 # Flask App
 app = Flask(__name__)
@@ -76,14 +71,21 @@ def github_webhook():
     event_type = request.headers.get("X-GitHub-Event")
     payload = request.get_json() or request.form.to_dict()
 
+    state.last_event = {
+        "event_type": event_type,
+        "payload": payload
+    }
+
     if not payload:
         logger.error("Empty or malformed payload")
         return jsonify({"error": "Empty or malformed payload"}), 400
 
-    thread = threading.Thread(target=run_gitops_agent, args=(event_type, payload, state))
-    thread.start()
-    return jsonify({"message": "GitOps Agent triggered"}), 200
+    def handle_agents():
+        run_gitops_agent(event_type, payload, state)
 
+    threading.Thread(target=handle_agents).start()
+
+    return jsonify({"message": "GitOps Agent triggered"}), 200
 
 # --- Unified Launch ---
 def launch_orchestrator():
@@ -91,7 +93,7 @@ def launch_orchestrator():
     wait_for_kafka()
     create_topics()
     launch_ngrok()
-    start_code_analysis_agent(state)
+    start_combined_agent(state)  # <-- runs code analysis + build via LangGraph
     app.run(host="0.0.0.0", port=5001)
 
 if __name__ == "__main__":

@@ -32,10 +32,10 @@ Given the following application code, generate either a **Dockerfile** (for sing
 ---
 
 ### Output Format:
-- First, state whether it's a `Dockerfile` or `docker-compose.yml`
-- Then output only the code block (no markdown or commentary)
+- First, state whether it is a `Dockerfile` or `docker-compose.yml`
+- Then output only the raw code block (no markdown formatting, no commentary)
 
 ---
 
-### Example Input:
-<INSERT COMMIT CODE OR SERVICE DESCRIPTION HERE>
+### Application Code Context:
+{{ context }}
