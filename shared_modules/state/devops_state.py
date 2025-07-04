@@ -36,6 +36,7 @@ class CodeAnalysisResult(BaseModel):
     passed: bool = False
     warnings: List[str] = []
     errors: List[str] = []
+    logs: List[str] = []
 
 
 class TestResults(BaseModel):
@@ -49,6 +50,7 @@ class BuildResult(BaseModel):
     image_url: Optional[str] = None
     status: StatusEnum = StatusEnum.NOT_STARTED
     logs: Optional[str] = None
+    retries: int = 0 
 
 
 class InfraState(BaseModel):
@@ -88,3 +90,4 @@ class DevOpsAgentState(BaseModel):
     current_agent: Optional[str] = None
     status: StatusEnum = StatusEnum.NOT_STARTED
     last_event: Optional[Dict] = None
+    llm_context_memory: Optional[str] = None 

@@ -1,10 +1,7 @@
-# File: unified_orchestrator.py
-
 import os
 import shutil
 import threading
 import time
-import json
 from flask import Flask, request, jsonify
 from kafka.admin import KafkaAdminClient
 from kafka.errors import KafkaError
@@ -16,12 +13,7 @@ from shared_modules.kafka_event_bus.topic_manager import create_topics
 
 from agents.gitops_agent.main import run_gitops_agent
 from shared_modules.state.devops_state import DevOpsAgentState
-
-from agents.code_analysis_agent.main import start_code_analysis_agent
-
-from agents.build_agent.main import run_build_agent
-
-from agents.build_agent.main import start_build_agent
+from agents.langgraph_combined.main import start_combined_agent
 
 # Flask App
 app = Flask(__name__)
@@ -91,11 +83,9 @@ def github_webhook():
     def handle_agents():
         run_gitops_agent(event_type, payload, state)
 
-    thread = threading.Thread(target=handle_agents)
-    thread.start()
+    threading.Thread(target=handle_agents).start()
 
-    return jsonify({"message": "GitOps & Build Agent triggered"}), 200
-
+    return jsonify({"message": "GitOps Agent triggered"}), 200
 
 # --- Unified Launch ---
 def launch_orchestrator():
@@ -103,8 +93,7 @@ def launch_orchestrator():
     wait_for_kafka()
     create_topics()
     launch_ngrok()
-    start_code_analysis_agent(state)
-    start_build_agent(state)
+    start_combined_agent(state)  # <-- runs code analysis + build via LangGraph
     app.run(host="0.0.0.0", port=5001)
 
 if __name__ == "__main__":
