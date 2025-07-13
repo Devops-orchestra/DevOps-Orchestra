@@ -18,28 +18,33 @@ class TestResult:
 
 
 def extract_test_results(logs: str, language: str) -> tuple[int, int, int]:
-    """
-    Extract (total, passed, failed) from test logs.
-    """
     if language == "python":
-        # e.g., "=== 3 passed in 0.01s ==="
         match = re.search(r"=+ (\d+) passed.*=", logs)
         total_match = re.search(r"=+ (\d+) (?:passed|failed|skipped|xfailed|xpassed|errors?)", logs)
         failed_match = re.search(r"=+ (\d+) failed.*=", logs)
-        
         passed = int(match.group(1)) if match else 0
         failed = int(failed_match.group(1)) if failed_match else 0
         total = int(total_match.group(1)) if total_match else passed + failed
 
     elif language == "node":
-        # Match e.g., "Tests:       2 passed, 1 failed, 3 total"
         passed_match = re.search(r"(\d+)\s+passed", logs)
         failed_match = re.search(r"(\d+)\s+failed", logs)
         total_match = re.search(r"(\d+)\s+total", logs)
-
         passed = int(passed_match.group(1)) if passed_match else 0
         failed = int(failed_match.group(1)) if failed_match else 0
         total = int(total_match.group(1)) if total_match else passed + failed
+
+    elif language == "java":
+        # Example: Tests run: 10, Failures: 2, Errors: 0, Skipped: 0
+        match = re.search(r"Tests run: (\d+), Failures: (\d+), Errors: (\d+)", logs)
+        if match:
+            total = int(match.group(1))
+            failed = int(match.group(2)) + int(match.group(3))
+            passed = total - failed
+        else:
+            total = 1
+            passed = 0
+            failed = 1
 
     else:
         total = 1
@@ -49,12 +54,16 @@ def extract_test_results(logs: str, language: str) -> tuple[int, int, int]:
     return total, passed, failed
 
 
+
 def detect_language(repo_path: str) -> str:
     if os.path.exists(os.path.join(repo_path, "package.json")):
         return "node"
     if os.path.exists(os.path.join(repo_path, "requirements.txt")):
         return "python"
+    if os.path.exists(os.path.join(repo_path, "pom.xml")) or os.path.exists(os.path.join(repo_path, "build.gradle")):
+        return "java"
     return "unknown"
+
 
 def read_test_prompt_template() -> Template:
     path = os.path.join(
@@ -88,14 +97,14 @@ def generate_tests_with_llm(repo_path: str, state: DevOpsAgentState) -> str:
     return test_code
 
 def run_tests_for_language(repo_path: str, test_code: str) -> TestResult:
-    """
-    Saves test code to a file and executes it using the correct test runner based on language.
-    """
     language = detect_language(repo_path)
+
     if language == "python":
         test_file = os.path.join(repo_path, "autogen_tests.py")
     elif language == "node":
         test_file = os.path.join(repo_path, "autogen.test.js")
+    elif language == "java":
+        test_file = os.path.join(repo_path, "AutogenTest.java")
     else:
         raise ValueError(f"[Test Agent] Unsupported language for testing: {language}")
 
@@ -118,16 +127,36 @@ def run_tests_for_language(repo_path: str, test_code: str) -> TestResult:
                 capture_output=True,
                 text=True
             )
+        elif language == "java":
+            # Try Maven first
+            if os.path.exists(os.path.join(repo_path, "pom.xml")):
+                result = subprocess.run(
+                    ["mvn", "test"],
+                    cwd=repo_path,
+                    capture_output=True,
+                    text=True
+                )
+            # Try Gradle next
+            elif os.path.exists(os.path.join(repo_path, "build.gradle")):
+                result = subprocess.run(
+                    ["./gradlew", "test"],
+                    cwd=repo_path,
+                    capture_output=True,
+                    text=True
+                )
+            else:
+                raise ValueError("Java project detected, but neither Maven nor Gradle build file was found.")
+
         passed = result.returncode == 0
-        total, passed_count, failed_count = extract_test_results(result.stdout + result.stderr, language)
+        logs = result.stdout + result.stderr
+        total, passed_count, failed_count = extract_test_results(logs, language)
+
         return TestResult(
-             passed=passed_count > 0 and failed_count == 0,
-             logs=result.stdout + result.stderr,
-             total=total,
-             coverage=None  # Optional: add extraction if needed
-            ) 
-
-
+            passed=passed_count > 0 and failed_count == 0,
+            logs=logs,
+            total=total,
+            coverage=None
+        )
 
     except Exception as e:
         logger.error(f"[Test Agent] Error while running tests: {e}")
