@@ -14,6 +14,7 @@ def check_build_status(inputs: dict) -> str:
     state: DevOpsAgentState = inputs["state"]
     if state.build_result.status == "success":
         return "test_code"  
+    state.build_result.retries += 1
     if state.build_result.retries < MAX_RETRIES:
         logger.warning(f"[Build Agent] Retry {state.build_result.retries}/{MAX_RETRIES}")
         return "build_image"
@@ -23,6 +24,7 @@ def check_test_status(inputs: dict) -> str:
     state: DevOpsAgentState = inputs["state"]
     if state.test_results.status == "success":
         return "end"
+    state.test_results.retries += 1
     if state.test_results.retries < MAX_RETRIES:
         logger.warning(f"[Test Agent] Retry {state.test_results.retries}/{MAX_RETRIES}")
         return "test_code"
