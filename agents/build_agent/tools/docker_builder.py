@@ -63,8 +63,8 @@ def build_and_push_image(event: dict, state: DevOpsAgentState):
             logger.error("[Build Agent] Docker build failed.")
             state.build_result.status = "failed"
             state.build_result.logs = e.output[-1000:]
-            state.build_result.retries += 1
             image_url = None
+            return {"event_data": event, "state": state}
     else:
         logger.info("[Build Agent] Detected docker-compose.yml – skipping Docker build.")
         state.build_result.status = "success"

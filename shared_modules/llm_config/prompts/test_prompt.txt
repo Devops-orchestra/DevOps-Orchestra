@@ -1,34 +1,42 @@
-You are an expert software test engineer. Generate both **unit tests** and **integration tests** for the following application or code files that were committed.
+You are a highly skilled software testing engineer with expertise in automated testing strategies.
+
+Given the following application code, generate comprehensive **unit and integration tests** for the application based on its language and framework.
 
 ---
 
-### Requirements:
+### Test Generation Guidelines:
 
-- **Auto-detect the programming language** (e.g., Python, JavaScript, Java, Go)
-- Use the **correct testing framework** based on the language:
+- **Language Detection**: Identify the programming language (Python, Node.js, Java, Go).
+- **Frameworks to Use**:
   - Python → `pytest` or `unittest`
-  - JavaScript/TypeScript → `jest` or `mocha`
-  - Java → `JUnit`
-  - Go → `testing`
-- Create:
-  - Unit tests for individual functions, routes, and classes
-  - Integration tests for modules that interact (e.g., API + DB, frontend + backend)
-- Include:
-  - `setup()` and `teardown()` methods if needed
-  - Mocks/stubs for DBs, APIs, or external services
-  - Test input validation, edge cases, and error handling
-- Tests must be **runnable locally** with a single command
-- Label each test as `# Unit Test` or `# Integration Test`
+  - Node.js → `jest` or `mocha`
+  - Java → `JUnit 5`
+  - Go → built-in `testing` package
+
+- **Tests to Generate**:
+  - Focus only on actual routes, endpoints, classes, or methods that are **explicitly defined** in the given code.
+  - Do **not** generate tests for undefined or imaginary routes/methods.
+
+- **Unit Tests**:
+  - Cover core logic, public methods, and expected behaviors.
+  - Include edge cases and exception handling where relevant.
+
+- **Integration Tests**:
+  - Test real interactions between application components (e.g., routes, services, database).
+  - When testing error handlers, simulate errors using **real application routes**, not by mocking internal framework behavior.
+
+- **Mocking Guidance**:
+  - Use mocking for external services, environment variables, or file I/O.
+  - Do **not** mock core framework internals such as Flask’s `handle_exception`, Express.js middleware, or logging setup functions.
+
+- **Error Simulation**:
+  - If needed, assume the app includes a route that intentionally raises an exception (e.g., `/raise-exception`) for testing error handlers.
+
+- **Output Format**:
+  - Output only the **raw test code** in the target language.
+  - Do **not** include markdown (no ```), explanations, or comments.
 
 ---
 
-### Output Format:
-
-- A directory structure if needed (e.g., `tests/`)
-- Individual test functions or files
-- No markdown formatting — output pure test code blocks
-
----
-
-### Application Code:
-<INSERT SCRAPED COMMIT CODE HERE>
+### Application Code Context:
+{{ context }}

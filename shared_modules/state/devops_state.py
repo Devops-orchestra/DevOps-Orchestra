@@ -44,6 +44,9 @@ class TestResults(BaseModel):
     passed: int = 0
     failed: int = 0
     coverage: float = 0.0
+    status: StatusEnum = StatusEnum.NOT_STARTED
+    retries: int = 0 
+    logs: List[str] = []
 
 
 class BuildResult(BaseModel):
