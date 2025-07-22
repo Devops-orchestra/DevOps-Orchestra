@@ -60,6 +60,7 @@ class InfraState(BaseModel):
     resources: Optional[Dict[str, str]] = None
     outputs: Optional[Dict[str, str]] = None
     status: StatusEnum = StatusEnum.NOT_STARTED
+    logs: Optional[str] = None
 
 
 class DeploymentState(BaseModel):

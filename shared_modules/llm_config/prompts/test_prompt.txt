@@ -13,6 +13,11 @@ Given the following application code, generate comprehensive **unit and integrat
   - Java → `JUnit 5`
   - Go → built-in `testing` package
 
+- **App Import Guidance (Python/Flask)**:
+  - If generating tests for a Flask app, **detect the main app module name from the project files** (e.g., `main.py`, `app.py`, etc.).
+  - Import the Flask app object using the correct module name, e.g., `from main import app` or `from app import app`.
+  - **Do not use placeholder names like `your_app`**.
+
 - **Tests to Generate**:
   - Focus only on actual routes, endpoints, classes, or methods that are **explicitly defined** in the given code.
   - Do **not** generate tests for undefined or imaginary routes/methods.

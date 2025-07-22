@@ -1,8 +1,6 @@
 import re
-from agents.code_analysis_agent.models.schemas import CodeAnalysisResult
 
-def parse_llm_summary(text: str) -> CodeAnalysisResult:
-    
+def parse_llm_summary(text: str) -> dict:
     errors = []
     warnings = []
     passed = True
@@ -28,9 +26,9 @@ def parse_llm_summary(text: str) -> CodeAnalysisResult:
             elif current_section == "notes":
                 notes.append(description)
 
-    return CodeAnalysisResult(
-        passed=passed if not errors else False,
-        errors=errors,
-        warnings=warnings,
-        notes=notes
-    )
+    return {
+        "passed": passed if not errors else False,
+        "errors": errors,
+        "warnings": warnings,
+        "notes": notes
+    }
