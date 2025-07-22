@@ -69,7 +69,7 @@ flowchart TD
         C[Build Agent]
         D[Code Analysis Agent]
         E[Test Agent]
-        F[Infrastructure Agent (IaC)]
+        F[Infrastructure Agent - IaC]
         G[Deployment Agent]
         H[Observability Agent]
         I[Rollback Agent]
