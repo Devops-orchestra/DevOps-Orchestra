@@ -5,50 +5,75 @@ You are a cloud infrastructure automation expert. Based on the following applica
 ### Requirements:
 
 1. **Project Type Detection**:
+
    - Detect the build tool or project type (docker, maven, gradle, npm, poetry, etc.) from the provided context or YAML.
 
 2. **Cloud Resource Mapping**:
+
    - If the project uses **docker**:
      - Provision an **ECR** repository for storing the Docker image.
-     - Provision an **ECS** cluster and service to run the containerized app.
-     - Include Terraform resources to build, tag, and push the local Docker image to ECR (with comments or instructions).
+     - Provision an **ECS Cluster**, **ECS Task Definition**, and **ECS Service** to run the containerized application.
+     - Include Terraform resources or shell commands (as comments) to **build, tag, and push** the Docker image to ECR using the Dockerfile located at `DOCKER_PATH` from `.env`.
+
    - If the project uses **maven** or **gradle** (Java):
-     - Provision an **Elastic Beanstalk** environment or an **EC2** instance to deploy the built artifact (JAR/WAR).
-   - If the project uses **npm** (Node.js):
-     - Provision an **ECS** service (for containerized) or **Lambda** (for serverless) depending on the app type.
-   - If the project uses **poetry** (Python):
-     - Provision an **ECS** service (for containerized) or **Lambda** (for serverless) depending on the app type.
-   - For multi-service or monorepo setups, create multiple ECS services or Beanstalk environments as needed.
+     - Provision an **Elastic Beanstalk environment** or **EC2** instance to deploy the built artifact (JAR/WAR).
+
+   - If the project uses **npm** (Node.js) or **poetry** (Python):
+     - If containerized (Dockerfile exists), deploy to **ECS**; otherwise, deploy as **Lambda** (for serverless apps).
+
+   - For **monorepos or multi-service apps**, generate one ECS service or environment per app/service.
 
 3. **Core Infrastructure**:
-   - Create a VPC with public and private subnets
-   - Add appropriate internet gateway and route tables
+
+   - Create a **VPC** with public and private subnets across at least one AZ.
+   - Add an **internet gateway**, **route tables**, and **NAT gateway** if required.
 
 4. **Security**:
-   - Create security groups to allow only necessary ports (e.g., 22, 80, 443, 5000)
-   - Ensure private resources (like RDS) are not exposed publicly
 
-5. **Database**:
-   - If the application connects to a database (e.g., PostgreSQL, MySQL), provision **RDS**
-   - Automatically create initial schema or tables (via user_data or provisioner blocks)
+   - Use **security groups** to allow only required ports (22, 80, 443, 5000).
+   - Ensure that **RDS** and other backend resources are not publicly accessible.
 
-6. **Output Variables**:
-   - Output public DNS or IP of ECS/EC2/Beanstalk
-   - Output RDS hostname and port (if present)
-   - Output ECR repository URL if Docker is used
+5. **Database Integration**:
+
+   - If the application connects to a DB (PostgreSQL/MySQL), provision an **RDS** instance.
+   - Use `DB_USERNAME` and `DB_PASSWORD` from the project’s `.env` file.
+   - Use provisioners or `user_data` to initialize schema if applicable.
+
+6. **Environment Awareness**:
+
+   - Extract and use the following values from `.env`:
+
+     - `AWS_REGION` → used in `provider.tf` and resources
+     - `AWS_KEYPAIR` → used in EC2 (if applicable)
+     - `AWS_AMI` → used for EC2 (if applicable)
+     - `DB_USERNAME`, `DB_PASSWORD` → used for RDS
+     - `DOCKER_PATH` → path to Dockerfile for ECR build
+     - Also pass all `.env` values as ECS container environment variables if deployed via ECS
+
+7. **Output Variables**:
+
+   - Output the **public IP or DNS** of the application (ECS service/Load Balancer, EC2, or Beanstalk)
+   - Output **RDS hostname and port** if present
+   - Output the **ECR repository URL**
 
 ---
 
 ### Output Format:
 
 - Terraform code in `.tf` files:
-  - `main.tf` → resources
-  - `variables.tf` → input variables
-  - `outputs.tf` → outputs
-  - `provider.tf` → AWS provider config
-- No markdown formatting or explanation — output only raw `.tf` code blocks
+
+  - `main.tf` → infrastructure resources (VPC, ECS, ECR, RDS, etc.)
+  - `variables.tf` → input variables (AMI, region, env vars, etc.)
+  - `outputs.tf` → all public outputs
+  - `provider.tf` → AWS provider and backend config
+
+- **No markdown formatting**
+- **No explanations, no comments** except shell command placeholders (for pushing Docker image)
 
 ---
 
-### Application Description or Code (including build tool and YAML):
+### Application Code or YAML Context:
+
 {{ context }}
+
+---
