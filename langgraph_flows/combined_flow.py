@@ -1,9 +1,5 @@
 from langgraph.graph import StateGraph
-<<<<<<< Updated upstream
-from langgraph_flows.shared_nodes import run_code_analysis_node, run_build_node, run_tests_node, run_infra_node
-=======
 from langgraph_flows.shared_nodes import run_code_analysis_node, run_build_node, run_tests_node, run_infra_node, run_deploy_node, run_rollback_node, run_observability_node
->>>>>>> Stashed changes
 from shared_modules.state.devops_state import DevOpsAgentState
 from agents.slack_agent.notifier import notify_failure_from_state
 from shared_modules.utils.logger import logger
@@ -37,19 +33,17 @@ def check_test_status(inputs: dict) -> str:
 def check_infrastructure_status(inputs: dict) -> str:
     state: DevOpsAgentState = inputs["state"]
     if state.infra.status == "success":
-        return "end"
+        return "deploy"
     else:
         return "notify_infra_failure"
 
-<<<<<<< Updated upstream
-=======
 def check_deploy_status(inputs: dict) -> str:
     state: DevOpsAgentState = inputs["state"]
     if state.deployment.status == "success":
         return "observability"
     return "notify_deploy_failure"
 
->>>>>>> Stashed changes
+
 def send_build_failure_notification(inputs: dict) -> dict:
     return notify_failure_from_state("Build Result", inputs["event_data"], inputs["state"])
 
@@ -62,6 +56,12 @@ def send_test_failure_notification(inputs: dict) -> dict:
 def send_infrastructure_code_failure_notification(inputs: dict) -> dict:
     return notify_failure_from_state("Infrastructure", inputs["event_data"], inputs["state"])
 
+def send_deploy_failure_notification(inputs: dict) -> dict:
+    return notify_failure_from_state("Deployment", inputs["event_data"], inputs["state"])
+
+def after_deploy_failure_notified(inputs: dict) -> str:
+    return "rollback"
+
 
 def get_combined_flow() -> StateGraph:
     builder = StateGraph(dict)
@@ -70,16 +70,14 @@ def get_combined_flow() -> StateGraph:
     builder.add_node("build_image", run_build_node)
     builder.add_node("test_code", run_tests_node)
     builder.add_node("provision_infra", run_infra_node)
-<<<<<<< Updated upstream
-=======
     builder.add_node("deploy", run_deploy_node)
     builder.add_node("rollback", run_rollback_node)
     builder.add_node("observability", run_observability_node)
->>>>>>> Stashed changes
     builder.add_node("notify_build_failure", send_build_failure_notification)
     builder.add_node("notify_code_analysis_failure", send_code_analysis_failure_notification)
     builder.add_node("notify_test_failure", send_test_failure_notification)
     builder.add_node("notify_infra_failure", send_infrastructure_code_failure_notification)
+    builder.add_node("notify_deploy_failure", send_deploy_failure_notification)
     builder.add_node("end", lambda x: x)
 
     builder.add_conditional_edges("code_analysis", should_build, {
@@ -102,10 +100,7 @@ def get_combined_flow() -> StateGraph:
     })
 
     builder.add_conditional_edges("provision_infra", check_infrastructure_status, {
-<<<<<<< Updated upstream
         "end": "end",
-        "notify_infra_failure": "notify_infra_failure"
-=======
         "deploy": "deploy",
         "notify_infra_failure": "notify_infra_failure"
     })
@@ -116,9 +111,9 @@ def get_combined_flow() -> StateGraph:
     })
 
     builder.add_conditional_edges("notify_deploy_failure", after_deploy_failure_notified, {
-        "rollback": "rollback",
->>>>>>> Stashed changes
+        "rollback": "rollback"
     })
 
+    
     builder.set_entry_point("code_analysis")
     return builder.compile()

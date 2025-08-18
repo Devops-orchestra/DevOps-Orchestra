@@ -4,13 +4,10 @@ from shared_modules.utils.logger import logger
 from agents.code_analysis_agent.tools.llm_code_analyzer import analyze_code_with_llm
 from agents.build_agent.tools.builder import build_and_push_image
 from agents.test_agent.tools.llm_test_generator import generate_tests_with_llm, run_tests_for_language
-from agents.infrastructure_agent.tools.llm_infra_generator import generate_infrastructure_with_llm
-<<<<<<< Updated upstream
-=======
+from agents.infrastructure_agent.tools.llm_infra_generator import generate_infrastructure_with_ll
 from agents.deployment_agent.tools.terraform_deployer import deploy_with_terraform
 from agents.rollback_agent.tools.terraform_rollback import rollback_and_publish
-from agents.observability_agent.tools.observer import run_observability_checks
->>>>>>> Stashed changes
+from agents.observability_agent.tools.observer import run_observability_check
 
 
 REPO_BASE_PATH = "/tmp/gitops_repos"
@@ -79,8 +76,6 @@ def run_infra_node(inputs: dict) -> dict:
         state.infra.outputs = {}
         state.infra.logs = str(e)
     return {"event_data": event, "state": state}
-<<<<<<< Updated upstream
-=======
 
 
 def run_deploy_node(inputs: dict) -> dict:
@@ -116,4 +111,3 @@ def run_observability_node(inputs: dict) -> dict:
         logger.error(f"[Observability Agent] Exception during checks: {e}")
         state.observability.alerts.append(str(e))
         return {"event_data": event, "state": state}
->>>>>>> Stashed changes

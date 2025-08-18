@@ -64,7 +64,6 @@ class InfraState(BaseModel):
 
 
 class DeploymentState(BaseModel):
-    environment: Optional[str] = None
     status: StatusEnum = StatusEnum.NOT_STARTED
     logs: Optional[str] = None
 

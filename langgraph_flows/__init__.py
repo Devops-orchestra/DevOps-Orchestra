@@ -3,11 +3,9 @@ from .build_flow import get_build_flow
 from .test_flow import get_test_flow
 from .combined_flow import get_combined_flow  # if using connected flow
 from .infra_flow import get_infra_flow
-<<<<<<< Updated upstream
-=======
 from .deployment_flow import get_deployment_flow
 from .observability_flow import get_observability_flow
->>>>>>> Stashed changes
+
 
 def get_all_flows():
     return {
@@ -15,11 +13,7 @@ def get_all_flows():
         "build": get_build_flow(),
         "test": get_test_flow,
         "combined": get_combined_flow(),
-<<<<<<< Updated upstream
-        "infra": get_infra_flow()
-=======
         "infra": get_infra_flow(),
         "deployment": get_deployment_flow(),
         "observability": get_observability_flow(),
->>>>>>> Stashed changes
     }
