@@ -3,6 +3,7 @@ from .build_flow import get_build_flow
 from .test_flow import get_test_flow
 from .combined_flow import get_combined_flow  # if using connected flow
 from .infra_flow import get_infra_flow
+from .deployment_flow import get_deployment_flow
 
 def get_all_flows():
     return {
@@ -10,5 +11,6 @@ def get_all_flows():
         "build": get_build_flow(),
         "test": get_test_flow,
         "combined": get_combined_flow(),
-        "infra": get_infra_flow()
+        "infra": get_infra_flow(),
+        "deployment": get_deployment_flow()
     }
