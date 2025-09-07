@@ -1,5 +1,7 @@
 import os
 import re
+import subprocess
+import json
 from jinja2 import Template
 from shared_modules.llm_config.model_wrapper import run_prompt
 from shared_modules.utils.logger import logger
@@ -14,44 +16,39 @@ PROMPT_PATH_TF = os.path.join(
     "..", "..", "..",
     "shared_modules", "llm_config", "prompts", "terraform_prompt.txt"
 )
-# (If you add a cloudformation prompt, add PROMPT_PATH_CF here)
 
 def read_prompt_template(path):
     with open(path, "r", encoding="utf-8") as f:
         return Template(f.read())
 
 def strip_markdown_blocks(content: str) -> str:
-    """
-    Removes markdown formatting like ```terraform, ```text, and any file headers.
-    """
-    # Remove all ``` blocks with or without language tag
     content = re.sub(r"(?s)```(?:terraform|hcl|text)?\s*(.*?)```", r"\1", content)
-    # Remove any file headers like 'main.tf', 'provider.tf', etc. at the start of a line
-    content = re.sub(r"^(main\.tf|provider\.tf|variables\.tf|outputs\.tf)\s*", "", content, flags=re.IGNORECASE | re.MULTILINE)
     return content.strip()
 
 def split_tf_files(clean_response: str) -> dict:
-    """
-    Splits the cleaned LLM output into tf files by detecting file headers or blocks.
-    Returns a dict: {filename: content}
-    """
-    # Find all file blocks by header (e.g., provider.tf, main.tf, etc.)
-    pattern = r"(?im)^\s*(provider\.tf|main\.tf|variables\.tf|outputs\.tf)\s*\n(.*?)(?=^\s*(?:provider\.tf|main\.tf|variables\.tf|outputs\.tf)\s*\n|\Z)"
-    matches = re.findall(pattern, clean_response, re.DOTALL | re.MULTILINE)
     files = {}
-    for fname, content in matches:
-        files[fname.strip().lower()] = content.strip()
-    # If no headers found, treat the whole response as main.tf
+    current_file = None
+    current_lines = []
+
+    for line in clean_response.splitlines():
+        stripped = line.strip().lower()
+        if stripped in {"provider.tf", "main.tf", "variables.tf", "outputs.tf"}:
+            if current_file and current_lines:
+                files[current_file] = "\n".join(current_lines).strip()
+            current_file = stripped
+            current_lines = []
+        elif current_file:
+            current_lines.append(line)
+
+    if current_file and current_lines:
+        files[current_file] = "\n".join(current_lines).strip()
+
     if not files:
         files["main.tf"] = clean_response.strip()
+
     return files
 
 def generate_infrastructure_with_llm(event: dict, state: DevOpsAgentState) -> dict:
-    """
-    Generates Terraform or CloudFormation using LLM and saves files to the correct path.
-    Uses config from state.repo_context.config.
-    Publishes IaCReadyEvent to Kafka after completion.
-    """
     try:
         config = state.repo_context.config or {}
         infra_cfg = config.get("infrastructure", {})
@@ -61,15 +58,16 @@ def generate_infrastructure_with_llm(event: dict, state: DevOpsAgentState) -> di
         provider = deployment_cfg.get("provider", "aws")
         region = deployment_cfg.get("region", "us-east-1")
         repo_name = event.get("repo") or event.get("repo_context", {}).get("repo") or "Sample_fullstack_project"
-        # Compose context for LLM
+
         context = f"Deployment: {deployment_cfg}\nInfrastructure: {infra_cfg}\nCloud Provider: {provider}\nRegion: {region}\nFull YAML: {config}"
-        # Prepare output directory
         base_path = os.path.join(REPO_BASE_PATH, repo_name, path)
         os.makedirs(base_path, exist_ok=True)
+
         status = "failed"
         resources = []
         logs = ""
         outputs = {}
+
         if tool == "terraform":
             prompt_template = read_prompt_template(PROMPT_PATH_TF)
             prompt = prompt_template.render(context=context)
@@ -77,16 +75,56 @@ def generate_infrastructure_with_llm(event: dict, state: DevOpsAgentState) -> di
             response = run_prompt(prompt, temperature=0.3, max_tokens=10000)
             clean_response = strip_markdown_blocks(response)
             tf_files = split_tf_files(clean_response)
+            logger.info(f"[Infra Agent] Terraform files returned by LLM: {list(tf_files.keys())}")
+
+            expected_files = {"provider.tf", "main.tf", "variables.tf", "outputs.tf"}
+            missing = expected_files - tf_files.keys()
+            if missing:
+                logger.warning(f"[Infra Agent] Missing Terraform files from LLM response: {missing}")
+
             written_files = []
-            for fname in ["provider.tf", "main.tf", "variables.tf", "outputs.tf"]:
+
+            for fname in expected_files:
                 content = tf_files.get(fname)
                 if content:
                     with open(os.path.join(base_path, fname), "w") as f:
                         f.write(content.strip())
                     written_files.append(fname)
-            status = "success"
-            resources = ["terraform"]
-            logs = f"Terraform files written: {written_files}"
+
+            try:
+                logger.info("[Infra Agent] Running terraform init")
+                subprocess.run(["terraform", "init", "-input=false", "-no-color"], cwd=base_path, check=True)
+
+                logger.info("[Infra Agent] Running terraform validate")
+                subprocess.run(["terraform", "validate", "-no-color"], cwd=base_path, check=True)
+
+                logger.info("[Infra Agent] Running terraform apply")
+                subprocess.run(["terraform", "apply", "-auto-approve", "-input=false", "-no-color"], cwd=base_path, check=True)
+
+                # Fetch outputs
+                try:
+                    logger.info("[Infra Agent] Fetching Terraform outputs")
+                    result = subprocess.run(["terraform", "output", "-json"], cwd=base_path, check=True, capture_output=True, text=True)
+                    tf_output_json = result.stdout
+                    outputs = {k: v["value"] for k, v in json.loads(tf_output_json).items()}
+                    logger.info(f"[Infra Agent] Extracted outputs: {outputs}")
+                except subprocess.CalledProcessError as e:
+                    logger.warning(f"[Infra Agent] terraform output failed: {e}")
+                    outputs = {}
+
+                status = "success"
+                resources = ["terraform"]
+                logs = f"Terraform files applied successfully: {written_files}"
+
+            except subprocess.CalledProcessError as e:
+                logger.error(f"[Infra Agent] Terraform execution failed: {e}")
+                return {
+                    "status": "failed",
+                    "resources": [],
+                    "outputs": {},
+                    "logs": f"Terraform failed: {e}"
+                }
+
         elif tool == "cloudformation":
             cloudformation_prompt = (
                 "You are a cloud infrastructure automation expert. "
@@ -107,7 +145,8 @@ def generate_infrastructure_with_llm(event: dict, state: DevOpsAgentState) -> di
             logger.error(f"[Infra Agent] Unsupported infrastructure tool: {tool}")
             logs = f"Unsupported tool: {tool}"
             return {"status": "failed", "resources": [], "outputs": {}, "logs": logs}
-        # Publish IaCReadyEvent to Kafka
+
+        # 📦 Publish Kafka event
         iac_event = IaCReadyEvent(
             repo=repo_name,
             resources=resources,
@@ -121,12 +160,14 @@ def generate_infrastructure_with_llm(event: dict, state: DevOpsAgentState) -> di
             logger.info(f"[Kafka] IaCReadyEvent published for repo: {repo_name}")
         except Exception as e:
             logger.error(f"[Kafka] Failed to publish IaCReadyEvent: {e}")
+
         return {
             "status": status,
             "resources": resources,
             "outputs": outputs,
             "logs": logs
         }
+
     except Exception as e:
         logger.error(f"[Infra Agent] Failed to generate infrastructure: {e}")
-        return {"status": "failed", "resources": [], "outputs": {}, "logs": str(e)} 
+        return {"status": "failed", "resources": [], "outputs": {}, "logs": str(e)}
