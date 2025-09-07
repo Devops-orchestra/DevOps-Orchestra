@@ -59,7 +59,7 @@ def generate_infrastructure_with_llm(event: dict, state: DevOpsAgentState) -> di
         region = deployment_cfg.get("region", "us-east-1")
         repo_name = event.get("repo") or event.get("repo_context", {}).get("repo") or "Sample_fullstack_project"
 
-        context = f"Deployment: {deployment_cfg}\nInfrastructure: {infra_cfg}\nCloud Provider: {provider}\nRegion: {region}\nFull YAML: {config}"
+        context = f"Deployment: {deployment_cfg}\nInfrastructure: {infra_cfg}\nCloud Provider: {provider}\nRegion: {region}\nFull YAML: {config}\nApplication Code: {state.llm_context_memory}"
         base_path = os.path.join(REPO_BASE_PATH, repo_name, path)
         os.makedirs(base_path, exist_ok=True)
 
