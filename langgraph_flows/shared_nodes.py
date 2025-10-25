@@ -5,6 +5,8 @@ from agents.code_analysis_agent.tools.llm_code_analyzer import analyze_code_with
 from agents.build_agent.tools.builder import build_and_push_image
 from agents.test_agent.tools.llm_test_generator import generate_tests_with_llm, run_tests_for_language
 from agents.infrastructure_agent.tools.llm_infra_generator import generate_infrastructure_with_llm
+from agents.deployment_agent.tools.terraform_deployer import deploy_with_terraform
+from agents.rollback_agent.tools.terraform_rollback import rollback_and_publish
 
 
 REPO_BASE_PATH = "/tmp/gitops_repos"
@@ -72,4 +74,26 @@ def run_infra_node(inputs: dict) -> dict:
         state.infra.status = "failed"
         state.infra.outputs = {}
         state.infra.logs = str(e)
+    return {"event_data": event, "state": state}
+
+def run_deploy_node(inputs: dict) -> dict:
+    event = inputs["event_data"]
+    state: DevOpsAgentState = inputs["state"]
+    try:
+        result = deploy_with_terraform(event, state)
+        if result.get("status") != "success":
+            logger.error("[Deployment Agent] Deployment failed; will allow flow to branch to rollback.")
+    except Exception as e:
+        logger.error(f"[Deployment Agent] Exception during deployment: {e}")
+        state.deployment.status = "failed"
+        state.deployment.logs = str(e)
+    return {"event_data": event, "state": state}
+
+def run_rollback_node(inputs: dict) -> dict:
+    event = inputs["event_data"]
+    state: DevOpsAgentState = inputs["state"]
+    try:
+        rollback_and_publish(event, state)
+    except Exception as e:
+        logger.error(f"[Rollback Agent] Exception during rollback: {e}")
     return {"event_data": event, "state": state}
