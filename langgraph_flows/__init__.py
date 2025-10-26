@@ -5,6 +5,7 @@ from .combined_flow import get_combined_flow  # if using connected flow
 from .infra_flow import get_infra_flow
 from .deployment_flow import get_deployment_flow
 from .rollback_flow import get_rollback_flow
+from .observability_flow import get_observability_flow
 
 def get_all_flows():
     return {
@@ -15,4 +16,5 @@ def get_all_flows():
         "infra": get_infra_flow(),
         "deployment": get_deployment_flow(),
         "rollback": get_rollback_flow(),
+        "observability": get_observability_flow(),
     }

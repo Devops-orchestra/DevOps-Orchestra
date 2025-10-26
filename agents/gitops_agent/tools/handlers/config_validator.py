@@ -58,10 +58,18 @@ class Alert(BaseModel):
     threshold_ms: Optional[int] = None
     threshold: Optional[str] = None
 
+class Thresholds(BaseModel):
+    cpu_usage: Optional[int] = 80
+    memory_usage: Optional[int] = 85
+    disk_usage: Optional[int] = 80
+    error_rate: Optional[int] = 2
+    request_latency: Optional[int] = 1000
+
 class Observability(BaseModel):
     enabled: bool
     tools: List[str]
     alerts: List[Alert]
+    thresholds: Optional[Thresholds] = None
 
 class ChatOps(BaseModel):
     enabled: bool

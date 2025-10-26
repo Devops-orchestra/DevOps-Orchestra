@@ -7,6 +7,7 @@ from agents.test_agent.tools.llm_test_generator import generate_tests_with_llm, 
 from agents.infrastructure_agent.tools.llm_infra_generator import generate_infrastructure_with_llm
 from agents.deployment_agent.tools.terraform_deployer import deploy_with_terraform
 from agents.rollback_agent.tools.terraform_rollback import rollback_and_publish
+from agents.observability_agent.tools.monitor import monitor_and_alert
 
 
 REPO_BASE_PATH = "/tmp/gitops_repos"
@@ -96,4 +97,17 @@ def run_rollback_node(inputs: dict) -> dict:
         rollback_and_publish(event, state)
     except Exception as e:
         logger.error(f"[Rollback Agent] Exception during rollback: {e}")
+    return {"event_data": event, "state": state}
+
+def run_observability_node(inputs: dict) -> dict:
+    event = inputs["event_data"]
+    state: DevOpsAgentState = inputs["state"]
+    try:
+        result = monitor_and_alert(event, state)
+        if result.get("status") == "success":
+            logger.info(f"[Observability Agent] Monitoring completed. Alerts: {result.get('alerts_count', 0)}")
+        else:
+            logger.error(f"[Observability Agent] Monitoring failed: {result.get('error')}")
+    except Exception as e:
+        logger.error(f"[Observability Agent] Exception during monitoring: {e}")
     return {"event_data": event, "state": state}
