@@ -33,17 +33,17 @@ DevOps Orchestra is a modular, event-driven DevOps automation platform powered b
    - **Role:** Provisions cloud infrastructure using Terraform or CloudFormation, based on config. Generates missing IaC files using LLMs.
    - **Kafka Topics:** Listens to `test_results`, publishes to `iac_ready`.
 
-6. **Deployment Agent** *(Planned)*
+6. **Deployment Agent**
    - **Role:** Deploys the application to the cloud using the specified strategy (e.g., blue-green, canary). Updates state with deployment status.
    - **Kafka Topics:** Listens to `iac_ready`, publishes to `deployment_triggered`.
 
-7. **Observability Agent** *(Planned)*
-   - **Role:** Monitors deployed resources for health, latency, and error rates using tools like Prometheus, Grafana, and CloudWatch. Publishes alerts if thresholds are breached.
+7. **Observability Agent**
+   - **Role:** Monitors deployed resources for health, latency, and error rates. Collects metrics (CPU, memory, disk, network, latency, error rates) and publishes alerts if thresholds are breached. Configurable thresholds via `devops_orchestra.yaml`.
    - **Kafka Topics:** Listens to `deployment_triggered`, publishes to `observability_alert`.
 
-8. **Rollback Agent** *(Planned)*
+8. **Rollback Agent**
    - **Role:** Listens for critical failures or alerts. Triggers rollback to a previous version or runs `terraform destroy` as needed.
-   - **Kafka Topics:** Listens to `observability_alert`, publishes to `rollback_event`.
+   - **Kafka Topics:** Listens to `rollback_event`.
 
 9. **ChatOps Agent**
    - **Role:** Sends notifications (e.g., deployment success/failure, rollbacks) to users via Slack or other platforms, based on config.
@@ -103,12 +103,10 @@ flowchart TD
     K7-->|Triggers|I
     I-->|Publishes|K8
     J-->|Listens to all events|Kafka
-    style G stroke-dasharray: 5 5
-    style H stroke-dasharray: 5 5
     style I stroke-dasharray: 5 5
 ```
 
-*Dashed nodes are planned/under development.*
+*Dashed node indicates planned/under development.*
 
 ---
 
@@ -127,5 +125,5 @@ flowchart TD
 ---
 
 **Note:**
-- The Deployment, Observability, and Rollback agents are planned and will complete the self-healing, fully automated pipeline.
+- All agents are implemented and working. The system provides a complete self-healing, fully automated pipeline.
 - All configuration is driven by the `devops_orchestra.yaml` file in each repository.

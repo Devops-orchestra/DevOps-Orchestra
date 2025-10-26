@@ -14,6 +14,7 @@ from shared_modules.kafka_event_bus.topic_manager import create_topics
 from agents.gitops_agent.main import run_gitops_agent
 from shared_modules.state.devops_state import DevOpsAgentState
 from agents.langgraph_combined.main import start_combined_agent
+from agents.observability_agent.main import start_observability_agent
 
 # Flask App
 app = Flask(__name__)
@@ -94,6 +95,7 @@ def launch_orchestrator():
     create_topics()
     launch_ngrok()
     start_combined_agent(state)  # <-- runs code analysis + build via LangGraph
+    start_observability_agent(state)  # <-- runs observability monitoring
     app.run(host="0.0.0.0", port=5001)
 
 if __name__ == "__main__":
