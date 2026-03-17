@@ -1,16 +1,15 @@
+"""
+DevOps Orchestra entry point. Runs the coordinator daemon (Slack gateway + pipeline).
+Trigger the pipeline from Slack (e.g. "Run pipeline for branch main"); 
+"""
+import sys
 import os
-import shutil
-import threading
-import time
-from flask import Flask, request, jsonify
-from kafka.admin import KafkaAdminClient
-from kafka.errors import KafkaError
-from pyngrok import ngrok
+from coordinator.main import main
 
-from shared_modules.utils.logger import logger
-from shared_modules.utils.file_utils import handle_remove_readonly
-from shared_modules.kafka_event_bus.topic_manager import create_topics
+# Ensure project root is on path
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+<<<<<<< Updated upstream
 from agents.gitops_agent.main import run_gitops_agent
 from shared_modules.state.devops_state import DevOpsAgentState
 from agents.langgraph_combined.main import start_combined_agent
@@ -100,3 +99,7 @@ def launch_orchestrator():
 
 if __name__ == "__main__":
     launch_orchestrator()
+=======
+if __name__ == "__main__": 
+    main()
+>>>>>>> Stashed changes

@@ -61,6 +61,10 @@ class InfraState(BaseModel):
     outputs: Optional[Dict[str, str]] = None
     status: StatusEnum = StatusEnum.NOT_STARTED
     logs: Optional[str] = None
+    # Plan approved by user; deployment agent applies (no apply in infra agent).
+    plan_accepted: bool = False
+    infra_path: Optional[str] = None
+    infra_tool: Optional[str] = None
 
 
 class DeploymentState(BaseModel):

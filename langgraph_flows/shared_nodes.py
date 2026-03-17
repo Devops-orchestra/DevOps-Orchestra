@@ -9,8 +9,15 @@ from agents.deployment_agent.tools.terraform_deployer import deploy_with_terrafo
 from agents.rollback_agent.tools.terraform_rollback import rollback_and_publish
 from agents.observability_agent.tools.monitor import monitor_and_alert
 
+REPO_BASE_PATH = os.getenv("REPO_BASE_PATH", "/tmp/gitops_repos")
 
-REPO_BASE_PATH = "/tmp/gitops_repos"
+
+def _clone_path_from_state(event_data: dict, state) -> str:
+    """Same convention as pipeline: REPO_BASE_PATH / repo_name_branch."""
+    repo_name = event_data.get("repo") or (event_data.get("repo_context") or {}).get("repo") or "repo"
+    branch = (getattr(getattr(state, "repo_context", None), "branch", None) or "main").replace("/", "_")
+    return os.path.join(REPO_BASE_PATH, f"{repo_name}_{branch}")
+
 
 def run_code_analysis_node(inputs: dict) -> dict:
     event = inputs["event_data"]
@@ -39,11 +46,11 @@ def run_build_node(inputs: dict) -> dict:
 def run_tests_node(inputs: dict) -> dict:
     state: DevOpsAgentState = inputs["state"]
     event = inputs["event_data"]
-    repo_name = event.get("repo") or event.get("repo_context", {}).get("repo")
-    repo_path = os.path.join(REPO_BASE_PATH, repo_name)
+    repo_path = _clone_path_from_state(event, state)
+    jira_ticket = event.get("jira_ticket")
 
     try:
-        test_code = generate_tests_with_llm(repo_path, state)
+        test_code = generate_tests_with_llm(repo_path, state, jira_ticket=jira_ticket)
         result = run_tests_for_language(repo_path, test_code, state)
 
         failed_count = result.total - result.passed
