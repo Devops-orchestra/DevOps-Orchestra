@@ -48,8 +48,11 @@ def run_tests_node(inputs: dict) -> dict:
     event = inputs["event_data"]
     repo_path = _clone_path_from_state(event, state)
     jira_ticket = event.get("jira_ticket")
+    repo_path = _clone_path_from_state(event, state)
+    jira_ticket = event.get("jira_ticket")
 
     try:
+        test_code = generate_tests_with_llm(repo_path, state, jira_ticket=jira_ticket)
         test_code = generate_tests_with_llm(repo_path, state, jira_ticket=jira_ticket)
         result = run_tests_for_language(repo_path, test_code, state)
 
