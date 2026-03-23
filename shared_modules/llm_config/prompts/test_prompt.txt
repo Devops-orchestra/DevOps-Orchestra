@@ -22,6 +22,19 @@ Generate tests ONLY in this language, using the standard framework for that lang
 ### Application Code Context:
 {{ context }}
 
+{% if retry_previous_code or retry_failure_logs %}
+---
+
+### Previous test run failed — correct the tests below
+The following is **exactly what you generated last time**, plus the **test runner output** (errors, tracebacks, pytest output). Revise the tests so they pass: fix imports, assertions, mocks, Flask test client usage, async, paths, and anything indicated by the errors. Output **complete replacement** test code for the same file—still only raw code, no markdown.
+
+**Test runner / error output:**
+{{ retry_failure_logs }}
+
+**Your previous generated test code:**
+{{ retry_previous_code }}
+{% endif %}
+
 ---
 
 ### Guidelines:

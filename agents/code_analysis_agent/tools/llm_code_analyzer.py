@@ -116,6 +116,14 @@ def _fetch_sonar_issues(host: str, token: str, project_key: str, page_size: int 
         return []
 
 
+def _severity_counts(issues: List[Dict[str, Any]]) -> Dict[str, int]:
+    counts: Dict[str, int] = {}
+    for issue in issues:
+        sev = (issue.get("severity") or "UNKNOWN").upper()
+        counts[sev] = counts.get(sev, 0) + 1
+    return counts
+
+
 def _summarize_issues(issues: List[Dict[str, Any]]) -> Dict[str, List[str]]:
     errors: List[str] = []
     warnings: List[str] = []
@@ -180,6 +188,11 @@ def analyze_code_with_llm(event: dict, state: DevOpsAgentState = None):
         if logs:
             notes.append(f"(scanner logs excerpt)\n{logs[:800]}")
         state.code_analysis.logs = notes
+        # Structured Sonar slice for downstream / dashboards
+        state.code_analysis.sonar.project_key = project_key
+        state.code_analysis.sonar.host_url = host or None
+        state.code_analysis.sonar.severity_counts = _severity_counts(issues)
+        state.code_analysis.sonar.issues_raw = issues[:100]
 
     logger.info(
         f"[Code Analysis] SonarQube status={status}, "

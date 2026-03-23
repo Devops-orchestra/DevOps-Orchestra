@@ -1,16 +1,19 @@
 """
-Run the full pipeline: clone → validate → repo size → license audit → [LangGraph DAG: code analysis → build → test] → infra → deploy.
+Run the full pipeline: clone → validate → repo size → license audit → git metadata →
+[LangGraph DAG: index_repo → code analysis → build → test] → infra → deploy.
 Agent steps (code analysis, build, test) run via LangGraph pipeline_agent flow; infra/deploy run in pipeline with ask_user.
 Logs to pipeline logs channel; on failure asks user (skip/retry/resolved).
 """
 import os
 import sys
 import shutil
+import uuid
 import httpx
 from typing import Callable, Optional, Any
 from shared_modules.utils.config_loader import load_yaml
 from shared_modules.state.devops_state import DevOpsAgentState, StatusEnum
 from shared_modules.utils.logger import logger
+from shared_modules.utils.git_metadata import populate_git_metadata
 from agents.code_analysis_agent.tools.llm_code_analyzer import analyze_code_with_llm
 from coordinator.slack_logger import (
     log_pipeline_trigger,
@@ -58,10 +61,16 @@ def run_pipeline(
     log_pipeline_trigger(repo=repo_name, branch=branch, trigger_source=trigger_source, pr_number=pr_number)
 
     state = DevOpsAgentState()
+    state.pipeline.pipeline_id = str(uuid.uuid4())
+    state.pipeline.trigger_type = trigger_source or "unknown"
     state.repo_context.repo = repo_name
     state.repo_context.branch = branch
     state.repo_context.commit = "unknown"
-    event_data = {"repo_context": state.repo_context.model_dump(), "repo": repo_name}
+    event_data = {
+        "repo_context": state.repo_context.model_dump(),
+        "repo": repo_name,
+        "pipeline_id": state.pipeline.pipeline_id,
+    }
 
     # ask_user(question): coordinator posts question to command channel and blocks until user reply; returns reply text.
     # Resolve Jira ticket if missing
@@ -154,7 +163,15 @@ def run_pipeline(
                 break
             # retry or resolved: loop again
 
-    # 5. Agent flow (LangGraph DAG: code_analysis → build → test)
+    # 4b. Git metadata (diff vs main/master) for index + test context
+    populate_git_metadata(state, clone_path, branch)
+    log_pipeline_step(
+        "Git metadata",
+        "success",
+        (state.git_meta.diff_summary or "No summary")[:900],
+    )
+
+    # 5. Agent flow (LangGraph DAG: index_repo → code_analysis → build → test)
     while True:
         try:
             event_data["jira_ticket"] = jira_ticket

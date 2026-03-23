@@ -1,19 +1,51 @@
+# =============================================================================
+# DevOps Orchestra — sample devops_orchestra.yaml
+# =============================================================================
+# Validated by agents/gitops_agent/tools/handlers/config_validator.py (OrchestraConfig).
+#
+# REQUIRED top-level keys: project, build, testing, deployment, infrastructure
+# OPTIONAL top-level keys: secrets, rollback, observability, chatops
+# =============================================================================
+
+# --- project (required) ---
+#   name      (string, required)  Application or service name
+#   language  (string, required)  Primary backend/runtime language (e.g. python, go, java)
+#   framework (string, required) Web or API framework (e.g. flask, fastapi, spring)
+#   repo      (string, required)  Clone URL of this repository
 project:
   name: my-app
-  frontend-language: react
-  backend-language: python
+  language: python
+  framework: flask
   repo: https://github.com/user/my-app
 
+# --- build (required) ---
+#   tool        (string, required)  docker | maven | npm | poetry | custom
+#   context     (string, required)  Build context path relative to repo root
+#   dockerfile  (string, required)  Dockerfile path when tool is docker
 build:
-  tool: docker   # options: docker, maven, npm, poetry, custom 
+  tool: docker
   context: .
   dockerfile: Dockerfile
 
+# --- testing (required) ---
+#   enabled   (boolean, required)  Set false to skip automated tests in the pipeline
+#   framework (string, required)  pytest | unittest | jest | mvn | go | ...
+#   command   (string, required)  Command used to run tests (working dir = repo root)
 testing:
   enabled: true
   framework: pytest
   command: pytest tests/
 
+# --- deployment (required) ---
+#   type      (string, required)  e.g. cloud, kubernetes
+#   provider  (string, required)  e.g. aws, gcp, azure
+#   strategy  (string, required)  e.g. blue-green, rolling, canary
+#   region    (string, required)  Cloud region
+#   services  (array, required)   One or more deployable units
+#     name    (string, required)
+#     runtime (string, required)  e.g. ec2, lambda, fargate
+#     port    (integer, required)
+#     env     (array, required)   key/value pairs for runtime environment
 deployment:
   type: cloud
   provider: aws
@@ -27,18 +59,30 @@ deployment:
         - key: ENV
           value: production
         - key: DB_URL
-          value: postgres://...
+          value: postgres://user:pass@host:5432/db
 
+# --- infrastructure (required) ---
+#   tool (string, required)  e.g. terraform, pulumi, cloudformation
+#   path (string, required)  Directory containing IaC relative to repo root
 infrastructure:
   tool: terraform
   path: infra/
 
+# --- secrets (optional) ---
+#   manager (string)  Secret store backend (e.g. aws_secrets_manager, vault)
+#   keys    (array)   Logical secret names to resolve at deploy time
 secrets:
   manager: aws_secrets_manager
   keys:
     - DB_PASSWORD
     - API_KEY
 
+# --- rollback (optional) ---
+#   enabled   (boolean)
+#   threshold (object)
+#     cpu      (integer)   CPU percent threshold
+#     errors   (integer)   Error count threshold
+#     duration (string)    Time window (e.g. 5m, 10m)
 rollback:
   enabled: true
   threshold:
@@ -46,6 +90,17 @@ rollback:
     errors: 5
     duration: 5m
 
+# --- observability (optional) ---
+#   enabled    (boolean)
+#   tools      (array)  Monitoring backends (e.g. prometheus, grafana, cloudwatch)
+#   alerts     (array)  Alert rules; each item:
+#                type (string, required)  e.g. latency, error_rate
+#                threshold_ms (integer, optional)  Latency alerts
+#                threshold    (string, optional)    Other alerts (quote values like "2%")
+#   thresholds (object, optional)  Default numeric guardrails for the observability agent
+#     cpu_usage, memory_usage, disk_usage (integers, percent)
+#     error_rate (integer, percent)
+#     request_latency (integer, milliseconds)
 observability:
   enabled: true
   tools:
@@ -56,8 +111,19 @@ observability:
     - type: latency
       threshold_ms: 500
     - type: error_rate
-      threshold: 2%
+      threshold: "2%"
+  thresholds:
+    cpu_usage: 80
+    memory_usage: 85
+    disk_usage: 80
+    error_rate: 2
+    request_latency: 1000
 
+# --- chatops (optional) ---
+#   enabled    (boolean)
+#   platform   (string)  e.g. slack, teams
+#   channel    (string)  Channel name or id for notifications
+#   notify_on  (array)   Events to notify (e.g. deployment_success, deployment_failure, rollback_triggered)
 chatops:
   enabled: true
   platform: slack

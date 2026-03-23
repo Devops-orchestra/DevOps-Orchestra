@@ -6,7 +6,7 @@ from typing import Optional, Tuple
 
 from jinja2 import Template
 from shared_modules.utils.logger import logger
-from shared_modules.state.devops_state import DevOpsAgentState
+from shared_modules.state.devops_state import DevOpsAgentState, StatusEnum
 from shared_modules.llm_config.model_wrapper import run_prompt
 from shared_modules.kafka_event_bus.kafka_producer import publish_event
 from shared_modules.kafka_event_bus.event_schema import TestResultsEvent
@@ -16,6 +16,10 @@ from agents.test_agent.tools.jira_use_case_tool import get_jira_use_case
 REPO_BASE_PATH = "/tmp/gitops_repos"
 
 SKIP_DIRS = {".git", "node_modules", "__pycache__", "venv", ".venv", "env", "dist", "build", "target"}
+
+# Cap retry context so prompts stay within model limits
+MAX_RETRY_CODE_CHARS = 24_000
+MAX_RETRY_LOG_CHARS = 16_000
 
 
 class TestResult:
@@ -154,13 +158,47 @@ def generate_tests_with_llm(
     language = detect_language(repo_path)
     logger.info(f"[Test Agent] Detected language: {language}")
 
-    code_context = state.llm_context_memory or "(No additional code context in state.)"
+    context_blocks = []
+    gm = getattr(state, "git_meta", None)
+    if gm and (gm.diff_summary or gm.changed_files):
+        if gm.diff_summary:
+            context_blocks.append(f"### Git change summary\n{gm.diff_summary[:6000]}")
+        if gm.changed_files:
+            cf = "\n".join(f"- {p}" for p in gm.changed_files[:120])
+            context_blocks.append(f"### Changed files\n{cf}")
+    idx = getattr(state, "index", None)
+    if idx and idx.status == StatusEnum.SUCCESS and idx.index_root:
+        context_blocks.append(
+            f"### Code index\nArtifacts: `{idx.index_root}` "
+            f"({idx.symbol_count} symbols, {idx.file_count} Python files, backend={idx.embedding_backend or 'n/a'})."
+        )
+    if state.llm_context_memory:
+        context_blocks.append(f"### Indexed code context (prioritize changed symbols)\n{state.llm_context_memory}")
+    if not context_blocks:
+        context_blocks.append("(No additional code context in state.)")
+    code_context = "\n\n".join(context_blocks)
+
+    retry_previous_code = ""
+    retry_failure_logs = ""
+    if state.test_results.retries > 0:
+        prev_code = (state.test_results.last_generated_code or "").strip()
+        prev_logs = (state.test_results.last_run_failure_logs or "").strip()
+        if prev_code or prev_logs:
+            retry_previous_code = prev_code[:MAX_RETRY_CODE_CHARS]
+            retry_failure_logs = prev_logs[:MAX_RETRY_LOG_CHARS]
+            logger.info(
+                "[Test Agent] Retry: including previous test code (%s chars) and failure logs (%s chars) for LLM.",
+                len(retry_previous_code),
+                len(retry_failure_logs),
+            )
 
     prompt_template = read_test_prompt_template()
     prompt = prompt_template.render(
         context=code_context,
         jira_use_case=jira_use_case_text,
         language=language,
+        retry_previous_code=retry_previous_code,
+        retry_failure_logs=retry_failure_logs,
     )
 
     logger.info("[Test Agent] Sending prompt to LLM.")
