@@ -1,3 +1,6 @@
+"""Terraform destroy/rollback helpers and Kafka rollback_event publishing.
+Called from deployment failures and LangGraph rollback nodes.
+"""
 import os
 import subprocess
 from typing import Dict, Any

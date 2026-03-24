@@ -1,20 +1,26 @@
-import subprocess
-import time
+"""
+GitOps agent: tool server lifecycle helpers.
+The pipeline is triggered only via Slack (user message or GitHub events in Slack channel).
+Clone, validate, license audit, etc. are run by the coordinator via the tool server.
+"""
 import os
 import platform
-import requests
 import socket
-import psutil
-from agents.gitops_agent.event_handler import handle_github_event
-from shared_modules.state.devops_state import DevOpsAgentState
-from shared_modules.utils.logger import logger
+import subprocess
 import sys
+import time
+
+import psutil
+import requests
+
+from shared_modules.utils.logger import logger
 
 TOOL_SERVER_PORT = 8001
 
+
 def kill_process_on_port(port: int):
     try:
-        for conn in psutil.net_connections(kind='inet'):
+        for conn in psutil.net_connections(kind="inet"):
             if conn.laddr.port == port:
                 try:
                     proc = psutil.Process(conn.pid)
@@ -28,15 +34,12 @@ def kill_process_on_port(port: int):
     except Exception as e:
         logger.error(f"Unexpected error while scanning for open ports: {e}")
 
+
 def start_tool_server():
-    """
-    Start the shared FastAPI server that serves all tools.
-    Runs as a subprocess in the background.
-    """
+    """Start the FastAPI tool server (clone, config_validator, license_audit, repo_size)."""
     logger.info("Launching Tool Server...")
-    tool_server_script = os.path.join(os.getcwd(), "agents","gitops_agent","tools", "tool_server.py")
+    tool_server_script = os.path.join(os.getcwd(), "agents", "gitops_agent", "tools", "tool_server.py")
     venv_python = sys.executable
-    # Check if already running on the port
     try:
         with socket.create_connection(("localhost", TOOL_SERVER_PORT), timeout=2):
             logger.info(f"Tool server already running on port {TOOL_SERVER_PORT}, restarting it.")
@@ -47,20 +50,21 @@ def start_tool_server():
     if platform.system() == "Windows":
         subprocess.Popen(
             [venv_python, tool_server_script],
-            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP
+            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
         )
     else:
         subprocess.Popen(
             [venv_python, tool_server_script],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
-            preexec_fn=os.setsid
+            start_new_session=True,
         )
-    time.sleep(2)  # Give time for server to boot up
+    time.sleep(2)
     logger.info("Tool Server started.")
 
 
 def wait_for_tool_server(timeout=10):
+    """Block until the tool server health check succeeds."""
     url = f"http://localhost:{TOOL_SERVER_PORT}/health"
     for _ in range(timeout):
         try:
@@ -71,24 +75,3 @@ def wait_for_tool_server(timeout=10):
         except requests.exceptions.RequestException:
             time.sleep(1)
     raise Exception("Tool server health check failed.")
-
-
-def run_gitops_agent(event_type: str, payload: dict, state: DevOpsAgentState) -> DevOpsAgentState:
-    """
-    Entrypoint for GitOps agent in LangGraph pipeline.
-    """
-    logger.info("Running GitOps Agent")
-
-    # Step 1: Start tool server if not running
-    start_tool_server()
-    wait_for_tool_server()
-
-    # Step 2: Run the event handler
-    updated_state = handle_github_event(
-        event_type=event_type,
-        payload=payload,
-        state=state
-    )
-
-    logger.info(f"GitOps Agent completed with status: {updated_state.status}")
-    return updated_state

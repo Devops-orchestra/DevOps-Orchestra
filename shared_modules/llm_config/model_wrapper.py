@@ -24,7 +24,7 @@ DEFAULT_MODEL = "llama-3.3-70b-versatile"
 def run_prompt(
     prompt: str,
     model: str = DEFAULT_MODEL,
-    temperature: float = 0.7,
+    temperature: float = 0.5,
     max_tokens: int = 1024
 ) -> str:
     """

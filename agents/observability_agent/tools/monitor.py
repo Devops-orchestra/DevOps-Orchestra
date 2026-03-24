@@ -1,3 +1,6 @@
+"""Collect simple health signals and compare to configured thresholds.
+Publishes observability_alert events when limits are exceeded.
+"""
 import os
 import time
 import random

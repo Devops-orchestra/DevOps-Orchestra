@@ -1,10 +1,31 @@
+"""LangGraph DAG: index_repo → code_analysis → build → test → infra → deploy → rollback (standalone).
+Re-exports get_pipeline_agent_flow and check_test_status_then_end from pipeline_graph for compatibility.
+"""
 from langgraph.graph import StateGraph
-from langgraph_flows.shared_nodes import run_code_analysis_node, run_build_node, run_tests_node, run_infra_node, run_deploy_node, run_rollback_node
+from langgraph_flows.shared_nodes import (
+    run_index_repo_node,
+    run_code_analysis_node,
+    run_build_node,
+    run_tests_node,
+    run_infra_node,
+    run_deploy_node,
+    run_rollback_node,
+)
 from shared_modules.state.devops_state import DevOpsAgentState
 from agents.slack_agent.notifier import notify_failure_from_state
 from shared_modules.utils.logger import logger
+from langgraph_flows.pipeline_graph import get_pipeline_agent_flow, check_test_status_then_end
 
 MAX_RETRIES = 3
+
+__all__ = [
+    "get_combined_flow",
+    "get_pipeline_agent_flow",
+    "should_build",
+    "check_build_status",
+    "check_test_status",
+    "check_test_status_then_end",
+]
 
 def should_build(inputs: dict) -> str:
     state: DevOpsAgentState = inputs["state"]
@@ -27,8 +48,9 @@ def check_test_status(inputs: dict) -> str:
     state.test_results.retries += 1
     if state.test_results.retries < MAX_RETRIES:
         logger.warning(f"[Test Agent] Retry {state.test_results.retries}/{MAX_RETRIES}")
-        return "provision_infra"
+        return "test_code"
     return "notify_test_failure"
+
 
 def check_infrastructure_status(inputs: dict) -> str:
     state: DevOpsAgentState = inputs["state"]
@@ -62,6 +84,7 @@ def send_deploy_failure_notification(inputs: dict) -> dict:
 def get_combined_flow() -> StateGraph:
     builder = StateGraph(dict)
 
+    builder.add_node("index_repo", run_index_repo_node)
     builder.add_node("code_analysis", run_code_analysis_node)
     builder.add_node("build_image", run_build_node)
     builder.add_node("test_code", run_tests_node)
@@ -74,6 +97,8 @@ def get_combined_flow() -> StateGraph:
     builder.add_node("notify_infra_failure", send_infrastructure_code_failure_notification)
     builder.add_node("notify_deploy_failure", send_deploy_failure_notification)
     builder.add_node("end", lambda x: x)
+
+    builder.add_edge("index_repo", "code_analysis")
 
     builder.add_conditional_edges("code_analysis", should_build, {
         "build_image": "build_image",
@@ -106,6 +131,6 @@ def get_combined_flow() -> StateGraph:
 
     builder.add_edge("rollback", "end")
 
-    builder.set_entry_point("code_analysis")
+    builder.set_entry_point("index_repo")
     return builder.compile()
 

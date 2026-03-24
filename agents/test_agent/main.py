@@ -1,3 +1,6 @@
+"""Optional standalone test agent listening on build_ready Kafka topic.
+Runs the test LangGraph flow outside the coordinator when needed.
+"""
 from langgraph_flows import get_all_flows
 from shared_modules.kafka_event_bus.kafka_consumer import create_consumer
 from shared_modules.kafka_event_bus.topics import BUILD_READY

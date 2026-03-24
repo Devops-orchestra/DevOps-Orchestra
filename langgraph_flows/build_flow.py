@@ -1,3 +1,6 @@
+"""Minimal LangGraph containing only the build_image node.
+Used when running the build stage in isolation or from Kafka workers.
+"""
 # File: langgraph_flows/build_flow.py
 
 from langgraph.graph import StateGraph

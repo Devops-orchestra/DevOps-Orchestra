@@ -1,3 +1,6 @@
+"""LangGraph node for observability monitoring after deploy.
+Invokes monitor_and_alert on shared state.
+"""
 from langgraph.graph import StateGraph
 from langgraph_flows.shared_nodes import run_observability_node
 

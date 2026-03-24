@@ -1,34 +1,24 @@
+"""
+Build failure notification from pipeline state and send to pipeline logs channel.
+"""
 from agents.slack_agent.main import notify_failure
 from shared_modules.state.devops_state import DevOpsAgentState
-from shared_modules.utils.logger import logger
+
+
+# Map failure step names to state attribute names
+_STATE_ATTR = {"build_result": "build_result", "code_analysis": "code_analysis", "test_results": "test_results", "infrastructure": "infra", "deployment": "deployment"}
+
 
 def notify_failure_from_state(agent: str, event_data: dict, state: DevOpsAgentState) -> dict:
-    repo = event_data.get("repo_context", {}).get("repo", "unknown-repo")
+    """Extract repo and logs from state and send failure to pipeline logs channel."""
+    repo = (event_data.get("repo_context") or {}).get("repo", "unknown-repo")
     agent_key = agent.lower().replace(" ", "_")
-    logs = getattr(state, agent_key).logs if hasattr(state, agent_key) else "No logs available."
-
-    # Read chatops config from state
-    config = getattr(state.repo_context, "config", {}) or {}
-    chatops_cfg = config.get("chatops", {})
-    enabled = chatops_cfg.get("enabled", False)
-    platform = chatops_cfg.get("platform", "slack").lower()
-
-    if not enabled:
-        logger.info(f"[Slack Agent] ChatOps notifications are disabled in config. Not sending message for {agent}.")
-        return {
-            "event_data": event_data,
-            "state": state
-        }
-    if platform != "slack":
-        logger.warning(f"[Slack Agent] ChatOps platform '{platform}' is not supported. Only 'slack' is supported.")
-        return {
-            "event_data": event_data,
-            "state": state
-        }
-
-    notify_failure(agent=agent, repo=repo, reason=logs)
-    logger.info(f"[Slack] Failure notification sent for {agent} in repo: {repo}")
-    return {
-        "event_data": event_data,
-        "state": state
-    }
+    state_attr = _STATE_ATTR.get(agent_key, agent_key)
+    logs = "No logs available."
+    if hasattr(state, state_attr):
+        obj = getattr(state, state_attr)
+        logs = getattr(obj, "logs", None) or getattr(obj, "errors", None) or str(obj)
+    if isinstance(logs, (list,)):
+        logs = "\n".join(str(x) for x in logs)
+    notify_failure(agent=agent, repo=repo, reason=logs or "No logs available.")
+    return {"event_data": event_data, "state": state}

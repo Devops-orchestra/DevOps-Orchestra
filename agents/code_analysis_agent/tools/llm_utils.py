@@ -1,3 +1,6 @@
+"""Parse LLM text output into structured errors, warnings, and pass/fail flags.
+Used when falling back to LLM-based summaries alongside Sonar results.
+"""
 import re
 
 def parse_llm_summary(text: str) -> dict:

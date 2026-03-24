@@ -1,3 +1,6 @@
+"""Compute approximate repository size on disk for pre-flight checks.
+Implements the repo_size tool used after clone and config validation.
+"""
 import os
 from pydantic import BaseModel
 

@@ -1,3 +1,6 @@
+"""Validate devops_orchestra.yaml against the OrchestraConfig Pydantic schema.
+Returns success or raises validation errors for the pipeline to surface.
+"""
 from typing import List, Optional
 from pydantic import BaseModel, ValidationError
 import yaml

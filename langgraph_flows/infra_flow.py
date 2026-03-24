@@ -1,3 +1,6 @@
+"""Single-node LangGraph wrapping provision_infra (IaC generation).
+Legacy helper; coordinator uses infra_deploy_graph for plan + approval.
+"""
 from langgraph.graph import StateGraph
 from langgraph_flows.shared_nodes import run_infra_node
 

@@ -31,13 +31,14 @@ def create_topics():
 
             topic_list = [
                 topics.CODE_PUSH,
+                topics.GITOPS_PIPELINE,
                 topics.CODE_ANALYSIS,
                 topics.TEST_RESULTS,
                 topics.BUILD_READY,
                 topics.IAC_READY,
                 topics.DEPLOYMENT_TRIGGERED,
                 topics.OBSERVABILITY_ALERT,
-                topics.ROLLBACK_EVENT
+                topics.ROLLBACK_EVENT,
             ]
 
             new_topics = [

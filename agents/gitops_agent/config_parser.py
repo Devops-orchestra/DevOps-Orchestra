@@ -1,3 +1,6 @@
+"""Parse and validate devops_orchestra.yaml using the shared YAML loader.
+Used by the GitOps tool server and coordinator for config introspection.
+"""
 from shared_modules.utils.config_loader import load_yaml
 from shared_modules.utils.logger import logger
 

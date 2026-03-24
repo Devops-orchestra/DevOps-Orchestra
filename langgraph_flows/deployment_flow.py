@@ -1,5 +1,9 @@
+"""Deploy node with conditional rollback edge and terminal end state.
+Shared by post-approval deploy and standalone deployment runs.
+"""
 from langgraph.graph import StateGraph
 from langgraph_flows.shared_nodes import run_deploy_node, run_rollback_node
+from shared_modules.state.devops_state import StatusEnum
 
 
 def get_deployment_flow() -> StateGraph:
@@ -11,7 +15,8 @@ def get_deployment_flow() -> StateGraph:
 
     def check_deploy_status(inputs: dict) -> str:
         state = inputs["state"]
-        if state.deployment.status == "success":
+        ds = getattr(state.deployment, "status", None)
+        if ds == StatusEnum.SUCCESS or str(ds).lower() == "success":
             return "end"
         return "rollback"
 
@@ -19,6 +24,7 @@ def get_deployment_flow() -> StateGraph:
         "end": "end",
         "rollback": "rollback",
     })
+    builder.add_edge("rollback", "end")
 
     builder.set_entry_point("deploy")
     return builder.compile()

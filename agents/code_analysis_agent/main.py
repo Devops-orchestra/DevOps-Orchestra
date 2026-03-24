@@ -1,3 +1,6 @@
+"""Optional standalone code analysis agent with Kafka consumer.
+Runs the code-analysis LangGraph flow when triggered by events.
+"""
 from langgraph_flows import get_all_flows
 from shared_modules.utils.logger import logger
 from shared_modules.kafka_event_bus.kafka_consumer import create_consumer

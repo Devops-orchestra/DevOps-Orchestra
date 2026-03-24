@@ -1,4 +1,24 @@
+# Code analysis: use SonarCloud (free cloud) OR self-hosted SonarQube.
+# - SonarCloud: set in .env → SONAR_HOST_URL=https://sonarcloud.io, SONAR_ORGANIZATION=<org>, SONAR_TOKEN=<token>, SONAR_PROJECT_KEY=<key>
+#   No need to start the sonarqube service below.
+# - Self-hosted: run with profile → docker-compose --profile self-hosted-sonar up -d
+#   Then set SONAR_HOST_URL=http://sonarqube:9000 and SONAR_TOKEN in .env.
+
 services:
+  sonarqube:
+    image: sonarqube:lts-community
+    container_name: sonarqube
+    profiles:
+      - self-hosted-sonar
+    ports:
+      - "9000:9000"
+    environment:
+      SONAR_ES_BOOTSTRAP_CHECKS_DISABLE: "true"
+    volumes:
+      - sonarqube_data:/opt/sonarqube/data
+      - sonarqube_logs:/opt/sonarqube/logs
+      - sonarqube_extensions:/opt/sonarqube/extensions
+
   zookeeper:
     image: wurstmeister/zookeeper
     container_name: zookeeper
@@ -30,9 +50,8 @@ services:
       retries: 5
 
   app:
+    platform: "linux/amd64"
     build: .
-    ports:
-      - "5001:5001"
     depends_on:
       kafka:
         condition: service_healthy
@@ -44,5 +63,12 @@ services:
     privileged: true
     environment:
       - PYTHONUNBUFFERED=1
-      - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}  
+      # Code analysis: set in .env (SonarCloud or self-hosted)
+      # SonarCloud (free): SONAR_HOST_URL=https://sonarcloud.io, SONAR_ORGANIZATION=<org>, SONAR_TOKEN=..., SONAR_PROJECT_KEY=...
+      # Self-hosted: SONAR_HOST_URL=http://sonarqube:9000, SONAR_TOKEN=... (run with --profile self-hosted-sonar)
+
+volumes:
+  sonarqube_data:
+  sonarqube_logs:
+  sonarqube_extensions:
 
