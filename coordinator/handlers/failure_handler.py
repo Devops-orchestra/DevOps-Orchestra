@@ -1,5 +1,6 @@
 """
 On agent failure: get LLM suggestion for resolution and format message for user in Slack.
+Uses Groq when GROQ_API_KEY is set; otherwise returns a short static hint to check logs.
 """
 import os
 from typing import Tuple

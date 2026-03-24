@@ -1,3 +1,6 @@
+"""Optional standalone deployment agent listening on Kafka for IAC-ready events.
+Invokes the deployment LangGraph flow when running agents separately.
+"""
 from langgraph_flows import get_all_flows
 from shared_modules.kafka_event_bus.kafka_consumer import create_consumer
 from shared_modules.kafka_event_bus.topics import IAC_READY

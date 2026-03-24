@@ -1,3 +1,6 @@
+"""LangGraph DAG: index_repo → code_analysis → build → test → infra → deploy → rollback (standalone).
+Re-exports get_pipeline_agent_flow and check_test_status_then_end from pipeline_graph for compatibility.
+"""
 from langgraph.graph import StateGraph
 from langgraph_flows.shared_nodes import (
     run_index_repo_node,
@@ -11,8 +14,18 @@ from langgraph_flows.shared_nodes import (
 from shared_modules.state.devops_state import DevOpsAgentState
 from agents.slack_agent.notifier import notify_failure_from_state
 from shared_modules.utils.logger import logger
+from langgraph_flows.pipeline_graph import get_pipeline_agent_flow, check_test_status_then_end
 
 MAX_RETRIES = 3
+
+__all__ = [
+    "get_combined_flow",
+    "get_pipeline_agent_flow",
+    "should_build",
+    "check_build_status",
+    "check_test_status",
+    "check_test_status_then_end",
+]
 
 def should_build(inputs: dict) -> str:
     state: DevOpsAgentState = inputs["state"]
@@ -35,20 +48,9 @@ def check_test_status(inputs: dict) -> str:
     state.test_results.retries += 1
     if state.test_results.retries < MAX_RETRIES:
         logger.warning(f"[Test Agent] Retry {state.test_results.retries}/{MAX_RETRIES}")
-        return "provision_infra"
-    return "notify_test_failure"
-
-
-def check_test_status_then_end(inputs: dict) -> str:
-    """Like check_test_status but on success go to 'end' (for pipeline-integrated flow)."""
-    state: DevOpsAgentState = inputs["state"]
-    if state.test_results.status == "success":
-        return "end"
-    state.test_results.retries += 1
-    if state.test_results.retries < MAX_RETRIES:
-        logger.warning(f"[Test Agent] Retry {state.test_results.retries}/{MAX_RETRIES}")
         return "test_code"
     return "notify_test_failure"
+
 
 def check_infrastructure_status(inputs: dict) -> str:
     state: DevOpsAgentState = inputs["state"]
@@ -128,47 +130,6 @@ def get_combined_flow() -> StateGraph:
     })
 
     builder.add_edge("rollback", "end")
-
-    builder.set_entry_point("index_repo")
-    return builder.compile()
-
-
-def get_pipeline_agent_flow():
-    """
-    DAG for pipeline integration: index_repo → code_analysis → build → test → end.
-    No infra/deploy (pipeline_handler runs those with ask_user). Use this when
-    invoking from the coordinator pipeline after clone/validate/repo_size/license_audit.
-    """
-    builder = StateGraph(dict)
-    builder.add_node("index_repo", run_index_repo_node)
-    builder.add_node("code_analysis", run_code_analysis_node)
-    builder.add_node("build_image", run_build_node)
-    builder.add_node("test_code", run_tests_node)
-    builder.add_node("notify_build_failure", send_build_failure_notification)
-    builder.add_node("notify_code_analysis_failure", send_code_analysis_failure_notification)
-    builder.add_node("notify_test_failure", send_test_failure_notification)
-    builder.add_node("end", lambda x: x)
-
-    builder.add_edge("index_repo", "code_analysis")
-
-    builder.add_conditional_edges("code_analysis", should_build, {
-        "build_image": "build_image",
-        "notify_code_analysis_failure": "notify_code_analysis_failure",
-    })
-    builder.add_conditional_edges("build_image", check_build_status, {
-        "build_image": "build_image",
-        "test_code": "test_code",
-        "notify_build_failure": "notify_build_failure",
-        "end": "end",
-    })
-    builder.add_conditional_edges("test_code", check_test_status_then_end, {
-        "test_code": "test_code",
-        "end": "end",
-        "notify_test_failure": "notify_test_failure",
-    })
-    builder.add_edge("notify_code_analysis_failure", "end")
-    builder.add_edge("notify_build_failure", "end")
-    builder.add_edge("notify_test_failure", "end")
 
     builder.set_entry_point("index_repo")
     return builder.compile()

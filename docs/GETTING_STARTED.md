@@ -1,5 +1,7 @@
 # Getting Started — What You Need to Do
 
+> **See also:** [SETUP.md](SETUP.md) for Docker-first setup and [`.env.example`](../.env.example) for all variables.
+
 The pipeline is triggered from **Slack** (user messages or pull-request events). The old GitHub webhook (Flask + ngrok) entry point has been removed; the app runs only the **coordinator** daemon.
 
 ---

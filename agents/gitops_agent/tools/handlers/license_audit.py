@@ -1,3 +1,6 @@
+"""Audit dependency manifests for license metadata (pip, npm, maven).
+Implements the license_audit tool for the GitOps stage of the pipeline.
+"""
 import os
 import subprocess
 import sys

@@ -1,3 +1,6 @@
+"""Minimal LangGraph with a single test_code entry node.
+Used when running only the test agent in isolation.
+"""
 from langgraph.graph import StateGraph
 from langgraph_flows.shared_nodes import run_tests_node
 

@@ -1,3 +1,6 @@
+"""Optional standalone build agent: Kafka listener + LangGraph build flow.
+Use when running the build agent as its own process outside the coordinator.
+"""
 from langgraph_flows import get_all_flows
 from shared_modules.utils.logger import logger
 from shared_modules.kafka_event_bus.kafka_consumer import create_consumer

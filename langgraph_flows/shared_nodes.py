@@ -1,3 +1,6 @@
+"""LangGraph node implementations shared across pipelines (index, build, test, deploy).
+Each node updates DevOpsAgentState and publishes Kafka step events.
+"""
 import os
 from shared_modules.state.devops_state import DevOpsAgentState, StatusEnum
 from shared_modules.utils.logger import logger
@@ -15,8 +18,30 @@ from agents.infrastructure_agent.tools.llm_infra_generator import generate_infra
 from agents.deployment_agent.tools.terraform_deployer import deploy_with_terraform
 from agents.rollback_agent.tools.terraform_rollback import rollback_and_publish
 from agents.observability_agent.tools.monitor import monitor_and_alert
+from shared_modules.kafka_event_bus.agent_events import publish_pipeline_agent_event
+from shared_modules.kafka_event_bus import topics as kafka_topics
 
 REPO_BASE_PATH = os.getenv("REPO_BASE_PATH", "/tmp/gitops_repos")
+
+
+def _kafka_agent(
+    topic: str,
+    agent: str,
+    state: DevOpsAgentState,
+    step: str,
+    status: str,
+    extra: dict | None = None,
+) -> None:
+    repo = state.repo_context.repo or "unknown"
+    publish_pipeline_agent_event(
+        topic,
+        agent,
+        step,
+        state.pipeline.pipeline_id,
+        repo,
+        status,
+        extra,
+    )
 
 
 def _slack_agent_started(label: str) -> None:
@@ -66,12 +91,28 @@ def run_index_repo_node(inputs: dict) -> dict:
     if state.index.logs:
         detail_parts.append("; ".join(state.index.logs[-3:]))
     _slack_agent_finished("Indexing", idx_ok, "\n".join(detail_parts))
+    _kafka_agent(
+        kafka_topics.GITOPS_PIPELINE,
+        "indexing_agent",
+        state,
+        "index_repo",
+        "success" if idx_ok else "failed",
+        {"symbols": state.index.symbol_count, "files": state.index.file_count},
+    )
     return {"event_data": event, "state": state}
 
 
 def run_code_analysis_node(inputs: dict) -> dict:
     event = inputs["event_data"]
     state: DevOpsAgentState = inputs["state"]
+    if state.pipeline.skips.code_analysis:
+        state.code_analysis.passed = True
+        prev = list(state.code_analysis.logs or [])
+        prev.append("Skipped by user (pipeline flag).")
+        state.code_analysis.logs = prev
+        _slack_agent_finished("Code analysis", True, "Skipped by user")
+        _kafka_agent(kafka_topics.CODE_ANALYSIS, "code_analysis_agent", state, "sonar", "skipped", {})
+        return {"event_data": event, "state": state}
     _slack_agent_started("Code analysis")
     try:
         analyze_code_with_llm(event, state)
@@ -86,11 +127,25 @@ def run_code_analysis_node(inputs: dict) -> dict:
     if state.code_analysis.logs:
         details += "\n" + "\n".join(str(x) for x in state.code_analysis.logs[-2:])
     _slack_agent_finished("Code analysis", ca_ok, details)
+    _kafka_agent(
+        kafka_topics.CODE_ANALYSIS,
+        "code_analysis_agent",
+        state,
+        "sonar",
+        "success" if ca_ok else "failed",
+        {"errors": n_err, "warnings": n_warn},
+    )
     return {"event_data": event, "state": state}
 
 def run_build_node(inputs: dict) -> dict:
     event = inputs["event_data"]
     state: DevOpsAgentState = inputs["state"]
+    if state.pipeline.skips.build:
+        state.build_result.status = "success"
+        state.build_result.logs = "Skipped by user (pipeline flag)."
+        _slack_agent_finished("Build", True, "Skipped by user")
+        _kafka_agent(kafka_topics.BUILD_READY, "build_agent", state, "docker_build", "skipped", {})
+        return {"event_data": event, "state": state}
     _slack_agent_started("Build")
     try:
         build_and_push_image(event, state)
@@ -104,6 +159,14 @@ def run_build_node(inputs: dict) -> dict:
     tail = (state.build_result.logs or "")[-800:] if state.build_result.logs else ""
     details = f"image: `{img}`\n{tail}" if tail else f"image: `{img}`"
     _slack_agent_finished("Build", build_ok, details)
+    _kafka_agent(
+        kafka_topics.BUILD_READY,
+        "build_agent",
+        state,
+        "docker_build",
+        "success" if build_ok else "failed",
+        {"image": img},
+    )
     return {"event_data": event, "state": state}
 
 
@@ -113,6 +176,16 @@ def run_tests_node(inputs: dict) -> dict:
     event = inputs["event_data"]
     repo_path = _clone_path_from_state(event, state)
     jira_ticket = event.get("jira_ticket")
+
+    if state.pipeline.skips.test:
+        state.test_results.status = StatusEnum.SUCCESS
+        state.test_results.logs = ["Skipped by user (pipeline flag)."]
+        state.test_results.total = 0
+        state.test_results.passed = 0
+        state.test_results.failed = 0
+        _slack_agent_finished("Test", True, "Skipped by user")
+        _kafka_agent(kafka_topics.TEST_RESULTS, "test_agent", state, "pytest", "skipped", {})
+        return {"event_data": event, "state": state}
 
     _slack_agent_started("Test")
     test_code = ""
@@ -162,6 +235,14 @@ def run_tests_node(inputs: dict) -> dict:
     if log_tail:
         details += f"\n{log_tail}"
     _slack_agent_finished("Test", test_ok, details)
+    _kafka_agent(
+        kafka_topics.TEST_RESULTS,
+        "test_agent",
+        state,
+        "pytest",
+        "success" if test_ok else "failed",
+        {"passed": state.test_results.passed, "total": state.test_results.total},
+    )
 
     return {"event_data": event, "state": state}
 

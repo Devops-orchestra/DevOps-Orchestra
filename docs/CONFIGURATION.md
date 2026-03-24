@@ -2,6 +2,8 @@
 
 This guide walks you through configuring **Slack** (two channels, app, Socket Mode), **GitHub** (events into Slack), and **Jira** for the Coordinator daemon. The coordinator listens only to Slack; GitHub events are delivered to Slack via webhook/integration.
 
+**Index:** [docs/README.md](README.md) · **Environment template:** [`.env.example`](../.env.example) · **Setup checklist:** [SETUP.md](SETUP.md)
+
 ---
 
 ## 1. Slack Setup

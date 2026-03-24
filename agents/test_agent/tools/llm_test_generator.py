@@ -1,3 +1,6 @@
+"""Generate language-specific tests via LLM and execute them with pytest/npm/mvn.
+Supports retry feedback with prior generated code and failure logs.
+"""
 import os
 import re
 import subprocess

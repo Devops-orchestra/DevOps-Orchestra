@@ -1,3 +1,6 @@
+"""Legacy/demo entrypoint for running the combined LangGraph flow standalone.
+Prefer coordinator/main.py for production Slack-driven pipelines.
+"""
 # File: agents/langgraph_combined/main.py
 
 import threading

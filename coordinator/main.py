@@ -8,7 +8,8 @@ import sys
 import threading
 import time
 from dotenv import load_dotenv
-
+import requests
+import subprocess
 # Ensure project root is on path
 _project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, _project_root)
@@ -30,7 +31,6 @@ pending_replies: dict = {}
 def _start_tool_server():
     """Start the GitOps tool server (clone, config_validator, etc.) if not running."""
     try:
-        import requests
         r = requests.get("http://localhost:8001/health", timeout=2)
         if r.status_code == 200:
             return
@@ -42,7 +42,6 @@ def _start_tool_server():
     if not os.path.isfile(tool_server_script):
         logger.warning("[Coordinator] Tool server script not found; clone/config_validator may fail.")
         return
-    import subprocess
     venv_python = sys.executable
     tool_server_cwd = os.path.dirname(tool_server_script)
     subprocess.Popen(

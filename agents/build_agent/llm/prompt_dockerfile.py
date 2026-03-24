@@ -1,3 +1,6 @@
+"""LLM prompt and helpers to generate Dockerfiles when the repo has none.
+Used by the build agent when no Dockerfile or compose file is detected.
+"""
 import re
 from shared_modules.utils.logger import logger
 from jinja2 import Template

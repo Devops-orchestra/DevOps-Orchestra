@@ -1,3 +1,6 @@
+"""Clone a Git repository to a target path for pipeline runs.
+Implements the clone_repo tool used by the coordinator LangGraph gitops node.
+"""
 import subprocess 
 import shutil
 import os

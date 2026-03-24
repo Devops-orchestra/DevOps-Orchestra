@@ -19,6 +19,7 @@ Constants:
 """
 
 CODE_PUSH = "code_push"
+GITOPS_PIPELINE = "gitops_pipeline"
 CODE_ANALYSIS = "code_analysis"
 TEST_RESULTS = "test_results"
 BUILD_READY = "build_ready"

@@ -24,12 +24,28 @@ class SeverityEnum(str, Enum):
     CRITICAL = "critical"
 
 
+class PipelineSkips(BaseModel):
+    """
+    User chose to skip a stage after failure; the LangGraph pipeline re-invokes with these
+    flags so nodes no-op and mark success where appropriate.
+    """
+
+    validate_config: bool = False
+    repo_size: bool = False
+    license_audit: bool = False
+    code_analysis: bool = False
+    build: bool = False
+    test: bool = False
+
+
 class PipelineMeta(BaseModel):
     """One pipeline run (Slack / GitHub / etc.)."""
 
     pipeline_id: str = ""
     trigger_type: str = "unknown"  # slack | github | manual | ...
     status: StatusEnum = StatusEnum.NOT_STARTED
+    skips: PipelineSkips = Field(default_factory=PipelineSkips)
+    last_failed_step: Optional[str] = None  # set by LangGraph nodes on failure (for skip/retry UX)
 
 
 class GitMetadata(BaseModel):
@@ -111,6 +127,8 @@ class InfraState(BaseModel):
     plan_accepted: bool = False
     infra_path: Optional[str] = None
     infra_tool: Optional[str] = None
+    # Latest terraform/plan text from generate_infrastructure_with_llm (for Slack + approval flow).
+    plan_output: Optional[str] = None
 
 
 class DeploymentState(BaseModel):

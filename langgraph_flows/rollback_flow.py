@@ -1,3 +1,6 @@
+"""Minimal LangGraph for rollback-only execution.
+Used when routing to rollback without a full redeploy.
+"""
 from langgraph.graph import StateGraph
 from langgraph_flows.shared_nodes import run_rollback_node
 

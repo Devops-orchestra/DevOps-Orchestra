@@ -1,3 +1,6 @@
+"""FastAPI (or similar) server exposing GitOps tools over HTTP POST /invoke.
+The coordinator calls this via TOOL_SERVER_URL for clone, validate, etc.
+"""
 from fastapi import FastAPI
 from pydantic import BaseModel
 from handlers.clone_repo import run_clone_repo

@@ -1,3 +1,6 @@
+"""Minimal LangGraph for code analysis (Sonar) in isolation.
+Chains indexing and analysis nodes without build/test when needed.
+"""
 # File: langgraph_flows/code_analysis_flow.py
 
 from langgraph.graph import StateGraph

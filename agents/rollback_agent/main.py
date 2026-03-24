@@ -1,3 +1,6 @@
+"""Optional standalone rollback agent listening for rollback events.
+Invokes rollback flows when run as a separate service.
+"""
 from shared_modules.kafka_event_bus.kafka_consumer import create_consumer
 from shared_modules.kafka_event_bus.topics import ROLLBACK_EVENT
 from shared_modules.utils.logger import logger

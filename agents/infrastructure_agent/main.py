@@ -1,3 +1,6 @@
+"""Optional standalone infra agent consuming Kafka code_push events.
+Runs the infra LangGraph flow when agents are deployed as microservices.
+"""
 from langgraph_flows import get_all_flows
 from shared_modules.kafka_event_bus.kafka_consumer import create_consumer
 from shared_modules.kafka_event_bus.topics import CODE_PUSH
